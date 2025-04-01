@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+        eventPurple: {
+          DEFAULT: '#6E59A5',
+          light: '#9b87f5',
+          dark: '#483D6B',
+        },
+        eventTeal: {
+          DEFAULT: '#33C3F0',
+          light: '#71D7F7',
+          dark: '#1E8DAD',
+        },
+        eventGray: {
+          DEFAULT: '#F1F0FB',
+          dark: '#8E9196',
+        },
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,12 +99,25 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'bounce-subtle': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-5px)' },
+        },
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-in': 'fade-in 0.5s ease-out',
+        'bounce-subtle': 'bounce-subtle 2s infinite ease-in-out',
+			},
+      fontFamily: {
+        'poppins': ['Poppins', 'sans-serif'],
+      },
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
