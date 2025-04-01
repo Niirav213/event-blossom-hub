@@ -16,6 +16,7 @@ import AdminRoute from "./components/AdminRoute";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminEventForm from "./pages/AdminEventForm";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CreateEventPage from "./pages/CreateEventPage";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,11 @@ const AppRoutes = () => (
     <Route path="/tickets" element={
       <ProtectedRoute>
         <TicketsPage />
+      </ProtectedRoute>
+    } />
+    <Route path="/create-event" element={
+      <ProtectedRoute>
+        <CreateEventPage />
       </ProtectedRoute>
     } />
     

@@ -39,7 +39,7 @@ const Hero = () => {
           </p>
           <div className="flex flex-col md:flex-row gap-3 justify-center">
             <Link to="/events">
-              <Button className="bg-eventTeal hover:bg-eventTeal-dark text-white px-6 py-2 h-12 text-lg">
+              <Button className="bg-eventTeal hover:bg-eventTeal-dark text-black px-6 py-2 h-12 text-lg font-medium">
                 Browse Events
               </Button>
             </Link>
