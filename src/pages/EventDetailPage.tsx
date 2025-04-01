@@ -1,51 +1,62 @@
 
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Share2, Heart, Users, Ticket } from "lucide-react";
+import { Calendar, Clock, MapPin, Share2, Heart, Users, Ticket, AlertCircle, LogIn } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const EventDetailPage = () => {
   const { id } = useParams();
   const [ticketQuantity, setTicketQuantity] = useState(1);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const loggedInStatus = localStorage.getItem("isLoggedIn") === "true";
+    setIsLoggedIn(loggedInStatus);
+  }, []);
   
   // In a real app, we would fetch this data based on the ID
   // For now, we'll use hardcoded data
   const event = {
     id: "1",
-    title: "Summer Music Festival",
-    description: "Join us for an unforgettable summer music festival featuring top artists from around the world. Experience amazing performances across multiple stages, delicious food vendors, art installations, and more. This family-friendly event has something for everyone!",
-    longDescription: "The Summer Music Festival is back for its 5th annual celebration of music, art, and community. Spanning over two days, this year's festival features an incredible lineup of diverse musical talents, from emerging local artists to internationally acclaimed performers.\n\nIn addition to the music, explore art installations created by talented local artists, enjoy culinary delights from our curated food vendors, and participate in various workshops throughout the festival grounds.\n\nThis year's festival is committed to sustainability, with eco-friendly initiatives including reusable cup programs, waste sorting stations, and carbon offset options for attendees.",
-    date: "Jul 15, 2024",
-    startTime: "4:00 PM",
-    endTime: "11:00 PM",
-    location: "Central Park",
-    address: "Central Park, New York, NY 10022",
-    image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Concerts",
-    organizer: "City Events Inc.",
-    price: 49,
+    title: "Annual College Fest",
+    description: "Join us for the biggest college event of the year! Featuring live music performances, dance competitions, tech exhibitions, food stalls, and more.",
+    longDescription: "The Annual College Fest is back with more excitement and activities than ever before! This two-day extravaganza showcases the best talent our campus has to offer.\n\nDay 1 features cultural performances including dance competitions, music performances, and theatrical presentations. The evening concludes with performances from local bands and our college rock group.\n\nDay 2 focuses on academic and technical exhibitions, workshops, and the much-anticipated talent show final. The event concludes with an award ceremony and DJ night.\n\nThis is the perfect opportunity to showcase your talents, meet fellow students, and create lasting memories of your college experience.",
+    date: "May 15, 2024",
+    startTime: "10:00 AM",
+    endTime: "10:00 PM",
+    location: "Main Campus Ground",
+    address: "University Campus, College Road, Building 3",
+    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
+    category: "Festivals",
+    organizer: "Student Council",
+    price: 15,
     availableTickets: 250,
-    tags: ["Music", "Festival", "Live Performance", "Outdoor"],
+    tags: ["Festival", "Music", "Dance", "Exhibition", "Food"],
     lineup: [
-      "The Groove Masters - 4:30 PM",
-      "Electric Dreams - 6:00 PM",
-      "Sarah Collins & The Night - 7:30 PM",
-      "Headliner: Cosmic Sound - 9:00 PM"
+      "Opening Ceremony - 10:00 AM",
+      "Cultural Performances - 11:30 AM",
+      "Tech Exhibition - 2:00 PM",
+      "Talent Competition - 4:00 PM",
+      "Live Music - 6:30 PM",
+      "DJ Night - 8:00 PM"
     ],
     faqs: [
       {
-        question: "What items are prohibited?",
-        answer: "Outside food and drinks, glass containers, professional cameras, and drones are not allowed at the event."
+        question: "Can non-students attend this event?",
+        answer: "Yes, non-students can attend with a guest pass. Each student can bring up to 2 guests."
       },
       {
-        question: "Is the event family-friendly?",
-        answer: "Yes, children under 12 can enter for free when accompanied by a paying adult."
+        question: "Is food included in the ticket price?",
+        answer: "No, food and beverages will be available for purchase from various stalls at the event."
       },
       {
-        question: "What happens if it rains?",
-        answer: "The event will proceed rain or shine. In case of severe weather, updates will be posted on our website and social media."
+        question: "What's the refund policy?",
+        answer: "Tickets are non-refundable but can be transferred to another person up to 24 hours before the event."
       }
     ]
   };
@@ -64,6 +75,26 @@ const EventDetailPage = () => {
 
   const decrementQuantity = () => {
     setTicketQuantity(prev => prev > 1 ? prev - 1 : 1);
+  };
+  
+  const handleBuyTickets = () => {
+    if (!isLoggedIn) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to purchase tickets",
+        variant: "destructive"
+      });
+      navigate("/sign-in");
+      return;
+    }
+    
+    // In a real app, this would call an API to process the ticket purchase
+    toast({
+      title: "Tickets purchased successfully!",
+      description: `You've purchased ${ticketQuantity} ticket(s) for ${event.title}`,
+    });
+    
+    navigate("/tickets");
   };
 
   return (
@@ -113,7 +144,7 @@ const EventDetailPage = () => {
                 <p className="text-gray-700 mb-6">{event.description}</p>
                 <p className="text-gray-700 whitespace-pre-line">{event.longDescription}</p>
                 
-                <h3 className="text-xl font-semibold mt-8 mb-4">Lineup</h3>
+                <h3 className="text-xl font-semibold mt-8 mb-4">Schedule</h3>
                 <ul className="space-y-2 mb-8">
                   {event.lineup.map((item, index) => (
                     <li key={index} className="flex items-start">
@@ -127,7 +158,7 @@ const EventDetailPage = () => {
                 <div className="rounded-md overflow-hidden h-64 mb-4">
                   <div className="h-full w-full bg-gray-200 flex items-center justify-center">
                     <MapPin className="h-10 w-10 text-gray-400 mr-2" />
-                    <span className="text-gray-500">Map location</span>
+                    <span className="text-gray-500">Campus Map</span>
                   </div>
                 </div>
                 <p className="text-gray-700">{event.address}</p>
@@ -154,10 +185,7 @@ const EventDetailPage = () => {
               <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h2 className="text-2xl font-semibold mb-4">Organizer</h2>
                 <p className="text-lg mb-2">{event.organizer}</p>
-                <p className="text-gray-600 mb-4">Event organizer since 2018</p>
-                <Link to={`/organizers/${event.organizer}`} className="text-eventPurple hover:text-eventPurple-dark font-medium">
-                  View organizer profile
-                </Link>
+                <p className="text-gray-600 mb-4">Contact: studentcouncil@college.edu</p>
               </div>
             </div>
             
@@ -214,8 +242,18 @@ const EventDetailPage = () => {
                     </div>
                   </div>
                   
-                  <Button className="w-full bg-eventPurple hover:bg-eventPurple-dark mb-4 h-12 text-lg">
-                    Get Tickets
+                  <Button onClick={handleBuyTickets} className="w-full bg-eventPurple hover:bg-eventPurple-dark mb-4 h-12 text-lg">
+                    {isLoggedIn ? (
+                      <>
+                        <Ticket className="h-5 w-5 mr-2" />
+                        Get Tickets
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="h-5 w-5 mr-2" />
+                        Sign in to purchase
+                      </>
+                    )}
                   </Button>
                   
                   <div className="flex justify-between">
@@ -254,7 +292,7 @@ const EventDetailPage = () => {
                       <Ticket className="h-5 w-5 text-eventPurple mt-0.5 mr-3" />
                       <div>
                         <p className="font-medium">Ticket Policies</p>
-                        <p className="text-gray-700">All sales are final. No refunds.</p>
+                        <p className="text-gray-700">Non-refundable. Transferable up to 24h before event.</p>
                       </div>
                     </div>
                   </div>
