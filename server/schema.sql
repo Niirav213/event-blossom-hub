@@ -35,6 +35,27 @@ CREATE TABLE events (
   FOREIGN KEY (organizer_id) REFERENCES users(id)
 );
 
+-- Create Pending Events table (for event requests from regular users)
+CREATE TABLE pending_events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  image_url VARCHAR(255),
+  date DATE NOT NULL,
+  time_start TIME NOT NULL,
+  time_end TIME NOT NULL,
+  location VARCHAR(255) NOT NULL,
+  category VARCHAR(50) NOT NULL,
+  price DECIMAL(10,2) DEFAULT 0,
+  total_tickets INT DEFAULT 0,
+  requester_id INT NOT NULL,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  admin_notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (requester_id) REFERENCES users(id)
+);
+
 -- Create Tickets table
 CREATE TABLE tickets (
   id INT AUTO_INCREMENT PRIMARY KEY,

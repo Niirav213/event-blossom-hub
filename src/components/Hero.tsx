@@ -17,7 +17,6 @@ const Hero = () => {
     'Sports',
     'Exhibitions',
     'Networking',
-    'Food & Drink',
     'Theater',
     'Technology'
   ];
@@ -58,7 +57,7 @@ const Hero = () => {
               <input
                 type="text"
                 placeholder="Search events..."
-                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple"
+                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple text-gray-800"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -69,7 +68,7 @@ const Hero = () => {
               <input
                 type="text"
                 placeholder="Location"
-                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple"
+                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple text-gray-800"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -78,7 +77,7 @@ const Hero = () => {
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <select
-                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple appearance-none bg-white"
+                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple appearance-none bg-white text-gray-800"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >

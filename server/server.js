@@ -172,12 +172,19 @@ app.get('/api/events/:id', async (req, res) => {
 });
 
 // Admin Routes - Create, Update, Delete Events
-app.post('/api/events', authenticateToken, isAdmin, async (req, res) => {
+app.post('/api/events', authenticateToken, async (req, res) => {
   try {
     const { 
       title, description, image_url, date, time_start, time_end,
       location, category, price, total_tickets
     } = req.body;
+    
+    // Only allow admins to create events
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        message: 'Access denied: Only admins can create events. Your event submission has been sent for approval.'
+      });
+    }
     
     const [result] = await pool.query(
       `INSERT INTO events 
@@ -192,6 +199,34 @@ app.post('/api/events', authenticateToken, isAdmin, async (req, res) => {
     res.status(201).json(newEvent[0]);
   } catch (error) {
     console.error('Error creating event:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// New endpoint for regular users to submit event requests
+app.post('/api/events/request', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      title, description, image_url, date, time_start, time_end,
+      location, category, price, total_tickets
+    } = req.body;
+    
+    // Store event request in a pending_events table
+    const [result] = await pool.query(
+      `INSERT INTO pending_events 
+       (title, description, image_url, date, time_start, time_end, location, 
+        category, price, total_tickets, requester_id, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [title, description, image_url, date, time_start, time_end, location, 
+       category, price, total_tickets, req.user.id]
+    );
+    
+    res.status(201).json({ 
+      message: 'Event request submitted successfully and is pending approval',
+      request_id: result.insertId
+    });
+  } catch (error) {
+    console.error('Error submitting event request:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
