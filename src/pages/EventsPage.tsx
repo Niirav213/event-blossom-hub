@@ -1,122 +1,104 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
 import { Button } from "@/components/ui/button";
 import { Search, Calendar, MapPin, Filter, ChevronDown } from "lucide-react";
+import { eventsService } from "@/services/api";
+import { toast } from "sonner";
 
-// Sample event data - using the same as FeaturedEvents
-const SAMPLE_EVENTS = [
-  {
-    id: "1",
-    title: "Summer Music Festival",
-    date: "Jul 15, 2024",
-    time: "4:00 PM - 11:00 PM",
-    location: "Central Park, New York",
-    image: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Concerts",
-    price: "From $49"
-  },
-  {
-    id: "2",
-    title: "Tech Innovation Summit",
-    date: "Aug 5, 2024",
-    time: "9:00 AM - 5:00 PM",
-    location: "Convention Center, San Francisco",
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Technology",
-    price: "$199"
-  },
-  {
-    id: "3",
-    title: "Food & Wine Festival",
-    date: "Sep 10, 2024",
-    time: "12:00 PM - 8:00 PM",
-    location: "Waterfront Plaza, Chicago",
-    image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Food & Drink",
-    price: "$75"
-  },
-  {
-    id: "4",
-    title: "Wellness & Yoga Retreat",
-    date: "Oct 8, 2024",
-    time: "8:00 AM - 6:00 PM",
-    location: "Harmony Resort, Colorado",
-    image: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Workshops",
-    price: "$120"
-  },
-  {
-    id: "5",
-    title: "Art Exhibition - Modern Perspectives",
-    date: "Nov 20, 2024",
-    time: "10:00 AM - 7:00 PM",
-    location: "Gallery 33, Boston",
-    image: "https://images.unsplash.com/photo-1561839561-b13bcfe95249?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Exhibitions",
-    price: "$15"
-  },
-  {
-    id: "6",
-    title: "Business Networking Mixer",
-    date: "Dec 5, 2024",
-    time: "6:00 PM - 9:00 PM",
-    location: "Downtown Hilton, Seattle",
-    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Networking",
-    price: "$30"
-  },
-  {
-    id: "7",
-    title: "Local Community Fundraiser",
-    date: "Jul 22, 2024",
-    time: "11:00 AM - 4:00 PM",
-    location: "Civic Center, Portland",
-    image: "https://images.unsplash.com/photo-1593795899768-947c4929449d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2672&q=80",
-    category: "Community",
-    price: "$10"
-  },
-  {
-    id: "8",
-    title: "Craft Beer Festival",
-    date: "Aug 15, 2024",
-    time: "2:00 PM - 10:00 PM",
-    location: "Riverfront Park, Denver",
-    image: "https://images.unsplash.com/photo-1505075106905-fb052892c116?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2670&q=80",
-    category: "Food & Drink",
-    price: "$45"
-  },
-  {
-    id: "9",
-    title: "Photography Workshop",
-    date: "Sep 18, 2024",
-    time: "10:00 AM - 4:00 PM",
-    location: "Downtown Studio, Austin",
-    image: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2670&q=80",
-    category: "Workshops",
-    price: "$85"
-  }
-];
+interface Event {
+  id: number;
+  title: string;
+  date: string;
+  time_start: string;
+  time_end: string;
+  location: string;
+  image_url: string;
+  category: string;
+  price: number;
+  available_tickets: number;
+}
 
 const EventsPage = () => {
-  const [events, setEvents] = useState(SAMPLE_EVENTS);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  
+  const initialCategory = searchParams.get('category') || '';
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   
   const categories = [
     'All Categories',
-    'Concerts',
-    'Workshops',
-    'Festivals',
-    'Sports',
-    'Exhibitions',
-    'Networking',
-    'Food & Drink',
-    'Theater',
-    'Technology'
+    'academic',
+    'cultural',
+    'sports',
+    'conferences',
+    'festivals',
+    'workshops',
+    'competitions',
+    'social'
   ];
+  
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoading(true);
+        const categoryParam = selectedCategory === 'All Categories' ? '' : selectedCategory;
+        const data = await eventsService.getAllEvents(categoryParam);
+        setEvents(data);
+      } catch (error) {
+        toast.error("Failed to load events");
+        console.error("Error fetching events:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchEvents();
+  }, [selectedCategory]);
+  
+  const handleSearch = () => {
+    // Filter events based on search query and location
+    // This is client-side filtering for demo purposes
+    // In a real application, you'd send these filters to your API
+    if (!searchQuery && !locationQuery) return;
+    
+    toast.info(`Searching for "${searchQuery}" in ${locationQuery || "all locations"}`);
+  };
+  
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const category = e.target.value;
+    setSelectedCategory(category);
+    
+    // Update URL with category param
+    if (category && category !== 'All Categories') {
+      setSearchParams({ category });
+    } else {
+      setSearchParams({});
+    }
+  };
+  
+  // Format event data for EventCard component
+  const formatEventForCard = (event: Event) => ({
+    id: event.id.toString(),
+    title: event.title,
+    date: new Date(event.date).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }),
+    time: `${event.time_start} - ${event.time_end}`,
+    location: event.location,
+    image: event.image_url,
+    category: event.category,
+    price: event.price > 0 ? `$${event.price}` : "Free"
+  });
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -125,8 +107,8 @@ const EventsPage = () => {
       <main className="flex-grow">
         <div className="bg-eventPurple text-white py-10">
           <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">Discover Events</h1>
-            <p className="text-lg">Find the perfect events for you and your friends.</p>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Discover College Events</h1>
+            <p className="text-lg">Find the perfect events for you and your friends on campus.</p>
           </div>
         </div>
         
@@ -151,11 +133,13 @@ const EventsPage = () => {
                     type="text"
                     placeholder="Location"
                     className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple"
+                    value={locationQuery}
+                    onChange={(e) => setLocationQuery(e.target.value)}
                   />
                 </div>
                 <Button 
                   className="bg-eventPurple hover:bg-eventPurple-dark text-white"
-                  onClick={() => {/* Search functionality would go here */}}
+                  onClick={handleSearch}
                 >
                   Search
                 </Button>
@@ -177,7 +161,11 @@ const EventsPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-4 p-4 border-t">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select className="w-full rounded-md border border-gray-200 py-2 px-3">
+                    <select 
+                      className="w-full rounded-md border border-gray-200 py-2 px-3"
+                      value={selectedCategory}
+                      onChange={handleCategoryChange}
+                    >
                       {categories.map((cat, idx) => (
                         <option key={idx} value={cat === 'All Categories' ? '' : cat}>{cat}</option>
                       ))}
@@ -213,7 +201,6 @@ const EventsPage = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                     <select className="w-full rounded-md border border-gray-200 py-2 px-3">
-                      <option>Recommended</option>
                       <option>Date (Soonest)</option>
                       <option>Date (Latest)</option>
                       <option>Price (Low to High)</option>
@@ -227,19 +214,35 @@ const EventsPage = () => {
           </div>
           
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-2">{events.length} events found</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <EventCard key={event.id} {...event} />
-              ))}
-            </div>
+            <h2 className="text-xl font-semibold mb-2">
+              {isLoading ? 'Loading events...' : `${events.length} events found`}
+            </h2>
+            
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-eventPurple"></div>
+              </div>
+            ) : events.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {events.map((event) => (
+                  <EventCard key={event.id} {...formatEventForCard(event)} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <h3 className="text-xl font-medium text-gray-600 mb-2">No events found</h3>
+                <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+              </div>
+            )}
           </div>
           
-          <div className="text-center py-8">
-            <Button className="bg-eventPurple hover:bg-eventPurple-dark">
-              Load More Events
-            </Button>
-          </div>
+          {events.length > 9 && (
+            <div className="text-center py-8">
+              <Button className="bg-eventPurple hover:bg-eventPurple-dark">
+                Load More Events
+              </Button>
+            </div>
+          )}
         </div>
       </main>
       

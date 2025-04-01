@@ -1,301 +1,312 @@
 
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Share2, Heart, Users, Ticket, AlertCircle, LogIn } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { Calendar, Clock, MapPin, Tag, Users, Ticket, DollarSign, User } from "lucide-react";
+import { eventsService, ticketsService } from "@/services/api";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+
+interface EventDetail {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  time_start: string;
+  time_end: string;
+  location: string;
+  category: string;
+  price: number;
+  total_tickets: number;
+  available_tickets: number;
+  image_url: string;
+  organizer_name: string;
+}
 
 const EventDetailPage = () => {
-  const { id } = useParams();
-  const [ticketQuantity, setTicketQuantity] = useState(1);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
+  const [event, setEvent] = useState<EventDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPurchasing, setIsPurchasing] = useState(false);
   const navigate = useNavigate();
-  
+  const { isAuthenticated, isAdmin } = useAuth();
+
   useEffect(() => {
-    const loggedInStatus = localStorage.getItem("isLoggedIn") === "true";
-    setIsLoggedIn(loggedInStatus);
-  }, []);
-  
-  // In a real app, we would fetch this data based on the ID
-  // For now, we'll use hardcoded data
-  const event = {
-    id: "1",
-    title: "Annual College Fest",
-    description: "Join us for the biggest college event of the year! Featuring live music performances, dance competitions, tech exhibitions, food stalls, and more.",
-    longDescription: "The Annual College Fest is back with more excitement and activities than ever before! This two-day extravaganza showcases the best talent our campus has to offer.\n\nDay 1 features cultural performances including dance competitions, music performances, and theatrical presentations. The evening concludes with performances from local bands and our college rock group.\n\nDay 2 focuses on academic and technical exhibitions, workshops, and the much-anticipated talent show final. The event concludes with an award ceremony and DJ night.\n\nThis is the perfect opportunity to showcase your talents, meet fellow students, and create lasting memories of your college experience.",
-    date: "May 15, 2024",
-    startTime: "10:00 AM",
-    endTime: "10:00 PM",
-    location: "Main Campus Ground",
-    address: "University Campus, College Road, Building 3",
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80",
-    category: "Festivals",
-    organizer: "Student Council",
-    price: 15,
-    availableTickets: 250,
-    tags: ["Festival", "Music", "Dance", "Exhibition", "Food"],
-    lineup: [
-      "Opening Ceremony - 10:00 AM",
-      "Cultural Performances - 11:30 AM",
-      "Tech Exhibition - 2:00 PM",
-      "Talent Competition - 4:00 PM",
-      "Live Music - 6:30 PM",
-      "DJ Night - 8:00 PM"
-    ],
-    faqs: [
-      {
-        question: "Can non-students attend this event?",
-        answer: "Yes, non-students can attend with a guest pass. Each student can bring up to 2 guests."
-      },
-      {
-        question: "Is food included in the ticket price?",
-        answer: "No, food and beverages will be available for purchase from various stalls at the event."
-      },
-      {
-        question: "What's the refund policy?",
-        answer: "Tickets are non-refundable but can be transferred to another person up to 24 hours before the event."
+    const fetchEvent = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const data = await eventsService.getEventById(id);
+        setEvent(data);
+      } catch (error) {
+        toast.error("Failed to load event details");
+        navigate("/events");
+      } finally {
+        setIsLoading(false);
       }
-    ]
-  };
+    };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
+    fetchEvent();
+  }, [id, navigate]);
 
-  const incrementQuantity = () => {
-    setTicketQuantity(prev => prev + 1);
-  };
-
-  const decrementQuantity = () => {
-    setTicketQuantity(prev => prev > 1 ? prev - 1 : 1);
-  };
-  
-  const handleBuyTickets = () => {
-    if (!isLoggedIn) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to purchase tickets",
-        variant: "destructive"
-      });
+  const handlePurchaseTicket = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please sign in to purchase tickets");
       navigate("/sign-in");
       return;
     }
-    
-    // In a real app, this would call an API to process the ticket purchase
-    toast({
-      title: "Tickets purchased successfully!",
-      description: `You've purchased ${ticketQuantity} ticket(s) for ${event.title}`,
-    });
-    
-    navigate("/tickets");
+
+    if (!event) return;
+
+    if (event.available_tickets <= 0) {
+      toast.error("Sorry, this event is sold out");
+      return;
+    }
+
+    try {
+      setIsPurchasing(true);
+      await ticketsService.purchaseTicket(event.id.toString());
+      toast.success("Ticket purchased successfully!");
+      // Update available tickets count
+      setEvent({
+        ...event,
+        available_tickets: event.available_tickets - 1
+      });
+      
+      // Redirect to tickets page
+      setTimeout(() => {
+        navigate("/tickets");
+      }, 1500);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to purchase ticket");
+    } finally {
+      setIsPurchasing(false);
+    }
   };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-eventPurple"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!event) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-700">Event Not Found</h2>
+            <p className="text-gray-500 mt-2">The event you're looking for doesn't exist or has been removed.</p>
+            <Button 
+              className="mt-4 bg-eventPurple hover:bg-eventPurple-dark"
+              onClick={() => navigate("/events")}
+            >
+              Browse Events
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-grow">
-        {/* Event Header */}
-        <div className="relative h-64 md:h-96 bg-gray-900">
-          <img 
-            src={event.image} 
-            alt={event.title} 
-            className="w-full h-full object-cover opacity-80"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8">
-            <div className="container mx-auto">
-              <span className="bg-eventPurple text-white px-3 py-1 text-sm font-medium rounded-md mb-2 inline-block">
-                {event.category}
-              </span>
-              <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">{event.title}</h1>
-              <div className="flex flex-wrap gap-4 text-white">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2" />
-                  <span>{event.date}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
-                  <span>{event.startTime} - {event.endTime}</span>
-                </div>
-                <div className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2" />
-                  <span>{event.location}</span>
-                </div>
+        {/* Hero section with image and overlay */}
+        <div className="relative h-80 lg:h-96">
+          <div 
+            className="absolute inset-0 bg-cover bg-center" 
+            style={{ backgroundImage: `url(${event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87'})` }}
+          >
+            <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+          </div>
+          <div className="container mx-auto px-4 relative h-full flex items-end pb-8">
+            <div className="text-white">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">{event.title}</h1>
+              <div className="flex items-center gap-2 text-gray-200">
+                <Calendar className="h-4 w-4" />
+                <span>{formatDate(event.date)}</span>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Event Content */}
+        {/* Event details */}
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Event Details Column */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 className="text-2xl font-semibold mb-4">About this event</h2>
-                <p className="text-gray-700 mb-6">{event.description}</p>
-                <p className="text-gray-700 whitespace-pre-line">{event.longDescription}</p>
-                
-                <h3 className="text-xl font-semibold mt-8 mb-4">Schedule</h3>
-                <ul className="space-y-2 mb-8">
-                  {event.lineup.map((item, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="inline-block w-2 h-2 bg-eventPurple rounded-full mt-2 mr-3"></span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <h3 className="text-xl font-semibold mt-8 mb-4">Location</h3>
-                <div className="rounded-md overflow-hidden h-64 mb-4">
-                  <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                    <MapPin className="h-10 w-10 text-gray-400 mr-2" />
-                    <span className="text-gray-500">Campus Map</span>
-                  </div>
-                </div>
-                <p className="text-gray-700">{event.address}</p>
-                
-                <h3 className="text-xl font-semibold mt-8 mb-4">FAQs</h3>
-                <div className="space-y-4">
-                  {event.faqs.map((faq, index) => (
-                    <div key={index} className="border-b border-gray-200 pb-4">
-                      <h4 className="font-medium text-lg mb-2">{faq.question}</h4>
-                      <p className="text-gray-700">{faq.answer}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="flex flex-wrap gap-3 mt-8">
-                  {event.tags.map((tag, index) => (
-                    <span key={index} className="bg-eventGray px-3 py-1 rounded-full text-sm text-gray-700">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Main content */}
+            <div className="flex-grow">
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 className="text-xl font-bold mb-4">About This Event</h2>
+                <p className="whitespace-pre-line text-gray-700">
+                  {event.description}
+                </p>
               </div>
               
-              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 className="text-2xl font-semibold mb-4">Organizer</h2>
-                <p className="text-lg mb-2">{event.organizer}</p>
-                <p className="text-gray-600 mb-4">Contact: studentcouncil@college.edu</p>
+              {isAdmin && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                  <h3 className="font-medium text-amber-700 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Admin Actions
+                  </h3>
+                  <div className="mt-2 flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white"
+                      onClick={() => navigate(`/admin/events/${event.id}/edit`)}
+                    >
+                      Edit Event
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to delete this event?")) {
+                          eventsService.deleteEvent(event.id.toString())
+                            .then(() => {
+                              toast.success("Event deleted successfully");
+                              navigate("/admin");
+                            })
+                            .catch(() => {
+                              toast.error("Failed to delete event");
+                            });
+                        }
+                      }}
+                    >
+                      Delete Event
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold mb-4">Event Details</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start">
+                    <Calendar className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-gray-700">Date</h4>
+                      <p>{formatDate(event.date)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Clock className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-gray-700">Time</h4>
+                      <p>{event.time_start} - {event.time_end}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <MapPin className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-gray-700">Location</h4>
+                      <p>{event.location}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Tag className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-gray-700">Category</h4>
+                      <p className="capitalize">{event.category}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Users className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-gray-700">Organizer</h4>
+                      <p>{event.organizer_name}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Ticket className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-gray-700">Available Tickets</h4>
+                      <p>{event.available_tickets} / {event.total_tickets}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
-            {/* Ticket/Registration Column */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24">
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-semibold">Tickets</h3>
-                    <span className="text-2xl font-bold text-eventPurple">
-                      {formatPrice(event.price)}
+            {/* Sidebar */}
+            <div className="md:w-80">
+              <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
+                <div className="mb-4">
+                  <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <DollarSign className="h-6 w-6 mr-1" />
+                    {event.price > 0 ? `$${event.price.toFixed(2)}` : "Free"}
+                  </h3>
+                  
+                  {event.available_tickets > 0 ? (
+                    <span className="text-green-600 text-sm font-medium">
+                      {event.available_tickets} tickets left
                     </span>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <p className="text-gray-600 mb-1">Available tickets: {event.availableTickets}</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div className="bg-eventPurple h-2.5 rounded-full" style={{ width: "65%" }}></div>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <label className="block text-gray-700 mb-2">Quantity</label>
-                    <div className="flex items-center">
-                      <button 
-                        onClick={decrementQuantity}
-                        className="border border-gray-300 rounded-l-md px-3 py-2 hover:bg-gray-100"
-                      >
-                        -
-                      </button>
-                      <input 
-                        type="text" 
-                        value={ticketQuantity} 
-                        readOnly 
-                        className="border-t border-b border-gray-300 px-3 py-2 w-16 text-center" 
-                      />
-                      <button 
-                        onClick={incrementQuantity}
-                        className="border border-gray-300 rounded-r-md px-3 py-2 hover:bg-gray-100"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-gray-200 pt-4 mb-6">
-                    <div className="flex justify-between mb-2">
-                      <span>Price ({ticketQuantity} {ticketQuantity === 1 ? 'ticket' : 'tickets'})</span>
-                      <span>{formatPrice(event.price * ticketQuantity)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-lg">
-                      <span>Total</span>
-                      <span>{formatPrice(event.price * ticketQuantity)}</span>
-                    </div>
-                  </div>
-                  
-                  <Button onClick={handleBuyTickets} className="w-full bg-eventPurple hover:bg-eventPurple-dark mb-4 h-12 text-lg">
-                    {isLoggedIn ? (
-                      <>
-                        <Ticket className="h-5 w-5 mr-2" />
-                        Get Tickets
-                      </>
-                    ) : (
-                      <>
-                        <LogIn className="h-5 w-5 mr-2" />
-                        Sign in to purchase
-                      </>
-                    )}
-                  </Button>
-                  
-                  <div className="flex justify-between">
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <Heart className="h-4 w-4" />
-                      Save
-                    </Button>
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </Button>
-                  </div>
+                  ) : (
+                    <span className="text-red-600 text-sm font-medium">
+                      Sold Out
+                    </span>
+                  )}
                 </div>
                 
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-lg font-semibold mb-4">Event Details</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <Calendar className="h-5 w-5 text-eventPurple mt-0.5 mr-3" />
-                      <div>
-                        <p className="font-medium">Date and Time</p>
-                        <p className="text-gray-700">{event.date}</p>
-                        <p className="text-gray-700">{event.startTime} - {event.endTime}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start">
-                      <MapPin className="h-5 w-5 text-eventPurple mt-0.5 mr-3" />
-                      <div>
-                        <p className="font-medium">Location</p>
-                        <p className="text-gray-700">{event.address}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start">
-                      <Ticket className="h-5 w-5 text-eventPurple mt-0.5 mr-3" />
-                      <div>
-                        <p className="font-medium">Ticket Policies</p>
-                        <p className="text-gray-700">Non-refundable. Transferable up to 24h before event.</p>
-                      </div>
-                    </div>
-                  </div>
+                <Button 
+                  className="w-full bg-eventPurple hover:bg-eventPurple-dark mb-4"
+                  disabled={event.available_tickets <= 0 || isPurchasing}
+                  onClick={handlePurchaseTicket}
+                >
+                  {isPurchasing ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <Ticket className="h-4 w-4 mr-2" />
+                      {event.price > 0 ? 'Purchase Ticket' : 'Register for Event'}
+                    </span>
+                  )}
+                </Button>
+                
+                <div className="text-sm text-gray-600">
+                  <p className="mb-2">
+                    <strong>Date:</strong> {formatDate(event.date)}
+                  </p>
+                  <p className="mb-2">
+                    <strong>Time:</strong> {event.time_start} - {event.time_end}
+                  </p>
+                  <p>
+                    <strong>Location:</strong> {event.location}
+                  </p>
                 </div>
               </div>
             </div>

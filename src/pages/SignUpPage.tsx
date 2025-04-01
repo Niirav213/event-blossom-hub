@@ -6,46 +6,36 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, UserPlus, Mail, Lock, User, AlertCircle } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const SignUpPage = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { register, loading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
     
     // Basic validation
     if (!name || !email || !password || !confirmPassword) {
       setError("All fields are required");
-      setIsLoading(false);
       return;
     }
     
     if (password !== confirmPassword) {
       setError("Passwords do not match");
-      setIsLoading(false);
       return;
     }
     
-    // This is a mock registration - in a real app, you'd connect to your backend
-    setTimeout(() => {
-      localStorage.setItem("isLoggedIn", "true");
-      toast({
-        title: "Account created successfully",
-        description: "Welcome to CollegeEventHub!",
-      });
+    const success = await register(name, email, password);
+    if (success) {
       navigate("/events");
-      setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -134,9 +124,9 @@ const SignUpPage = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-eventPurple hover:bg-eventPurple-dark"
-                disabled={isLoading}
+                disabled={loading}
               >
-                {isLoading ? (
+                {loading ? (
                   <span className="flex items-center">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

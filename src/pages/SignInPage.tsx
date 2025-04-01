@@ -6,36 +6,28 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, LogIn, Mail, Lock, AlertCircle } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const SignInPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { login, loading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
     
-    // This is a mock authentication - in a real app, you'd connect to your backend
-    setTimeout(() => {
-      // Mock successful authentication
-      if (email && password) {
-        localStorage.setItem("isLoggedIn", "true");
-        toast({
-          title: "Signed in successfully",
-          description: "Welcome back to CollegeEventHub!",
-        });
-        navigate("/events");
-      } else {
-        setError("Please enter both email and password");
-      }
-      setIsLoading(false);
-    }, 1000);
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+    
+    const success = await login(email, password);
+    if (success) {
+      navigate("/events");
+    }
   };
 
   return (
@@ -48,7 +40,7 @@ const SignInPage = () => {
             <Calendar className="h-12 w-12 text-eventPurple" />
           </div>
           
-          <h1 className="text-2xl font-bold text-center mb-6">Sign in to CollegeEventHub</h1>
+          <h1 className="text-2xl font-bold text-center mb-6">Sign in to College Event Hub</h1>
           
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-start mb-6">
@@ -96,9 +88,9 @@ const SignInPage = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-eventPurple hover:bg-eventPurple-dark"
-                disabled={isLoading}
+                disabled={loading}
               >
-                {isLoading ? (
+                {loading ? (
                   <span className="flex items-center">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
