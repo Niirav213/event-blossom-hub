@@ -6,34 +6,54 @@ USE college_events;
 
 -- Create Users table
 CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'student', 'faculty') NOT NULL DEFAULT 'student',
+  id NUMBER  PRIMARY KEY,
+  name VARCHAR2(100) NOT NULL,
+  email VARCHAR2(100) NOT NULL UNIQUE,
+  password VARCHAR2(255) NOT NULL,
+  role VARCHAR2(10) DEFAULT 'student' CHECK (role IN ('admin', 'student', 'faculty')),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+--trigger for user
+CREATE SEQUENCE users_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER users_before_insert
+BEFORE INSERT ON users
+FOR EACH ROW
+WHEN (NEW.id IS NULL)
+BEGIN
+  SELECT users_seq.NEXTVAL INTO :NEW.id FROM DUAL;
+END;
+/
 
 -- Create Events table
 CREATE TABLE events (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  image_url VARCHAR(255),
-  date DATE NOT NULL,
-  time_start TIME NOT NULL,
-  time_end TIME NOT NULL,
-  location VARCHAR(255) NOT NULL,
-  category VARCHAR(50) NOT NULL,
-  price DECIMAL(10,2) DEFAULT 0,
-  total_tickets INT DEFAULT 0,
-  available_tickets INT DEFAULT 0,
-  organizer_id INT NOT NULL,
+  id NUMBER  PRIMARY KEY,
+  title VARCHAR2(255) NOT NULL,
+  description CLOB,
+  image_url VARCHAR2(255),
+  event_date DATE NOT NULL,
+  time_start TIMESTAMP NOT NULL,
+  time_end TIMESTAMP NOT NULL,
+  location VARCHAR2(255) NOT NULL,
+  category VARCHAR2(50) NOT NULL,
+  price NUMBER(10,2) DEFAULT 0,
+  total_tickets NUMBER DEFAULT 0,
+  available_tickets NUMBER DEFAULT 0,
+  organizer_id NUMBER NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (organizer_id) REFERENCES users(id)
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_organizer FOREIGN KEY (organizer_id) REFERENCES users(id)
 );
+
+--trigger for events table
+CREATE OR REPLACE TRIGGER events_before_update
+BEFORE UPDATE ON events
+FOR EACH ROW
+BEGIN
+  :NEW.updated_at := CURRENT_TIMESTAMP;
+END;
 
 -- Create Pending Events table (for event requests from regular users)
 CREATE TABLE pending_events (
@@ -67,6 +87,17 @@ CREATE TABLE tickets (
   FOREIGN KEY (event_id) REFERENCES events(id),
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+--triggers and sequence for tickets
+CREATE SEQUENCE tickets_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER tickets_before_insert
+BEFORE INSERT ON tickets
+FOR EACH ROW
+WHEN (NEW.id IS NULL)
+BEGIN
+  SELECT tickets_seq.NEXTVAL INTO :NEW.id FROM DUAL;
+END;
 
 -- Create sample data for testing
 INSERT INTO users (name, email, password, role) VALUES

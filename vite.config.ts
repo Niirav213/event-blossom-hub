@@ -19,4 +19,18 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor'; // Splits large third-party dependencies
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Increases warning threshold to 1000 kB
+  },
 }));
+
