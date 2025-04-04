@@ -1,9 +1,13 @@
+
 -- Drop old tables if needed
 BEGIN
   EXECUTE IMMEDIATE 'DROP TABLE tickets CASCADE CONSTRAINTS';
   EXECUTE IMMEDIATE 'DROP TABLE pending_events CASCADE CONSTRAINTS';
   EXECUTE IMMEDIATE 'DROP TABLE events CASCADE CONSTRAINTS';
   EXECUTE IMMEDIATE 'DROP TABLE users CASCADE CONSTRAINTS';
+  EXECUTE IMMEDIATE 'DROP TABLE refresh_tokens CASCADE CONSTRAINTS';
+  EXECUTE IMMEDIATE 'DROP TABLE password_reset_tokens CASCADE CONSTRAINTS';
+  EXECUTE IMMEDIATE 'DROP TABLE email_verification_tokens CASCADE CONSTRAINTS';
 EXCEPTION
   WHEN OTHERS THEN
     NULL;
@@ -17,7 +21,13 @@ CREATE TABLE users (
   email VARCHAR2(100) UNIQUE NOT NULL,
   password VARCHAR2(100) NOT NULL,
   role VARCHAR2(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  email_verified NUMBER(1) DEFAULT 0,
+  profile_image_url VARCHAR2(255),
+  phone VARCHAR2(20),
+  department VARCHAR2(100),
+  bio CLOB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE SEQUENCE users_seq START WITH 2 INCREMENT BY 1;
@@ -30,9 +40,77 @@ BEGIN
 END;
 /
 
+CREATE OR REPLACE TRIGGER users_before_update
+BEFORE UPDATE ON users
+FOR EACH ROW
+BEGIN
+  :NEW.updated_at := CURRENT_TIMESTAMP;
+END;
+/
+
 -- Insert one user
-INSERT INTO users (id, name, email, password, role)
-VALUES (1, 'Alice Johnson', 'alice@example.com', 'securepassword', 'admin');
+INSERT INTO users (id, name, email, password, role, email_verified)
+VALUES (1, 'Alice Johnson', 'alice@example.com', 'securepassword', 'admin', 1);
+
+-- REFRESH_TOKENS Table
+CREATE TABLE refresh_tokens (
+  id NUMBER PRIMARY KEY,
+  user_id NUMBER NOT NULL,
+  token VARCHAR2(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_refresh_token_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE SEQUENCE refresh_tokens_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER refresh_tokens_before_insert
+BEFORE INSERT ON refresh_tokens
+FOR EACH ROW
+BEGIN
+  :NEW.id := refresh_tokens_seq.NEXTVAL;
+END;
+/
+
+-- PASSWORD_RESET_TOKENS Table
+CREATE TABLE password_reset_tokens (
+  id NUMBER PRIMARY KEY,
+  user_id NUMBER NOT NULL,
+  token VARCHAR2(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_reset_token_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE SEQUENCE password_reset_tokens_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER password_reset_tokens_before_insert
+BEFORE INSERT ON password_reset_tokens
+FOR EACH ROW
+BEGIN
+  :NEW.id := password_reset_tokens_seq.NEXTVAL;
+END;
+/
+
+-- EMAIL_VERIFICATION_TOKENS Table
+CREATE TABLE email_verification_tokens (
+  id NUMBER PRIMARY KEY,
+  user_id NUMBER NOT NULL,
+  token VARCHAR2(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_verification_token_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE SEQUENCE email_verification_tokens_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER email_verification_tokens_before_insert
+BEFORE INSERT ON email_verification_tokens
+FOR EACH ROW
+BEGIN
+  :NEW.id := email_verification_tokens_seq.NEXTVAL;
+END;
+/
 
 -- EVENTS Table
 CREATE TABLE events (
@@ -170,3 +248,4 @@ END;
 -- Insert one ticket
 INSERT INTO tickets (id, event_id, user_id, quantity, status)
 VALUES (1, 1, 1, 2, 'booked');
+

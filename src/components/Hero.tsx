@@ -1,103 +1,94 @@
 
 import { useState } from 'react';
-import { Search, Calendar, MapPin } from "lucide-react";
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Search, CalendarCheck } from "lucide-react";
 
 const Hero = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('');
   
-  const categories = [
-    'All Categories',
-    'Concerts',
-    'Workshops',
-    'Festivals',
-    'Sports',
-    'Exhibitions',
-    'Networking',
-    'Theater',
-    'Technology'
-  ];
-
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Here you would typically navigate to the events page with filters
+    console.log('Search:', { searchQuery, location, category });
+  };
+  
   return (
-    <section className="relative bg-gradient-to-br from-eventPurple to-eventPurple-dark text-white py-16 md:py-24">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-eventPurple-dark to-transparent"></div>
-      </div>
-
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-            Discover Amazing Local Events Near You
+    <div className="bg-gradient-to-r from-eventPurple to-eventPurple-dark text-white py-20">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            Discover Amazing College Events
           </h1>
-          <p className="text-lg md:text-xl text-gray-100 mb-8">
-            Find and attend events that match your interests, connect with like-minded people, and create unforgettable memories.
+          <p className="text-xl md:text-2xl mb-8">
+            Find and book tickets for the best events happening at Manipal Institute of Technology Bengaluru Campus
           </p>
-          <div className="flex flex-col md:flex-row gap-3 justify-center">
-            <Link to="/events">
-              <Button className="bg-eventTeal hover:bg-eventTeal-dark text-black px-6 py-2 h-12 text-lg font-medium">
-                Browse Events
-              </Button>
-            </Link>
-            <Link to="/create-event">
-              <Button variant="outline" className="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white border-white px-6 py-2 h-12 text-lg">
-                Host an Event
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-xl p-4 md:p-6 max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
+          
+          {/* Search Form */}
+          <form onSubmit={handleSearch} className="bg-white p-2 md:p-3 rounded-lg shadow-lg flex flex-col md:flex-row gap-2 md:gap-3 mb-8">
+            <div className="flex-1 relative">
+              <Input 
                 type="text"
                 placeholder="Search events..."
-                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple text-gray-800"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-full h-11 text-gray-900 font-medium"
               />
+              <Search className="h-4 w-4 absolute left-3 top-3.5 text-gray-500" />
             </div>
             
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Location"
-                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple text-gray-800"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-            
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <div className="flex-1 relative">
               <select
-                className="pl-10 pr-4 py-3 rounded-md border border-gray-200 w-full focus:outline-none focus:ring-2 focus:ring-eventPurple appearance-none bg-white text-gray-800"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                className="w-full h-11 pl-3 pr-8 rounded-md border border-input bg-background text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                {categories.map((cat, index) => (
-                  <option key={index} value={cat === 'All Categories' ? '' : cat}>
-                    {cat}
-                  </option>
-                ))}
+                <option value="">All Categories</option>
+                <option value="music">Music</option>
+                <option value="technology">Technology</option>
+                <option value="arts">Arts</option>
+                <option value="sports">Sports</option>
+                <option value="workshop">Workshop</option>
+                <option value="seminar">Seminar</option>
               </select>
             </div>
-          </div>
+            
+            <div className="flex-1 relative">
+              <Input 
+                type="text"
+                placeholder="Location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full h-11 text-gray-900 font-medium"
+              />
+            </div>
+            
+            <Button type="submit" className="h-11 px-6 bg-eventTeal hover:bg-eventTeal-dark text-white">
+              Search
+            </Button>
+          </form>
           
-          <div className="mt-4 text-center">
-            <Button className="bg-eventPurple hover:bg-eventPurple-dark text-white px-8 py-3 h-12">
-              Find Events
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Button asChild size="lg" className="bg-white text-eventPurple hover:bg-gray-100">
+              <Link to="/events">
+                <Search className="mr-2 h-5 w-5" />
+                Browse Events
+              </Link>
+            </Button>
+            <Button asChild size="lg" className="bg-eventTeal hover:bg-eventTeal-dark">
+              <Link to="/create-event">
+                <CalendarCheck className="mr-2 h-5 w-5" />
+                Host an Event
+              </Link>
             </Button>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

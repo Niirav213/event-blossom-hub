@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { SearchIcon, Menu, X, Calendar, Ticket, LogIn } from "lucide-react";
+import { SearchIcon, Menu, X, Calendar, Ticket, LogIn, Info } from "lucide-react";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,7 +38,7 @@ const Navbar = () => {
               <input
                 type="text"
                 placeholder="Search events..."
-                className="pl-8 pr-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-eventPurple"
+                className="pl-8 pr-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-eventPurple text-gray-900"
               />
               <SearchIcon className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
             </div>
@@ -89,7 +89,7 @@ const Navbar = () => {
                 <input
                   type="text"
                   placeholder="Search events..."
-                  className="w-full pl-8 pr-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-eventPurple"
+                  className="w-full pl-8 pr-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-eventPurple text-gray-900"
                 />
                 <SearchIcon className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
               </div>

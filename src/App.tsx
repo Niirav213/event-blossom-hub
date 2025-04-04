@@ -10,6 +10,7 @@ import EventDetailPage from "./pages/EventDetailPage";
 import TicketsPage from "./pages/TicketsPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
+import AboutPage from "./pages/AboutPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./context/AuthContext";
 import AdminRoute from "./components/AdminRoute";
@@ -27,6 +28,7 @@ const AppRoutes = () => (
     <Route path="/events/:id" element={<EventDetailPage />} />
     <Route path="/sign-in" element={<SignInPage />} />
     <Route path="/sign-up" element={<SignUpPage />} />
+    <Route path="/about" element={<AboutPage />} />
     
     {/* Protected routes - require authentication */}
     <Route path="/tickets" element={
