@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -20,8 +19,36 @@
 
   <body>
     <div id="root"></div>
+
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Fetch and display user data from API -->
+    <script>
+      fetch("http://localhost:5000/users")
+        .then(response => response.json())
+        .then(data => {
+          console.log("✅ Fetched users from API:", data);
+          const section = document.createElement("section");
+          const heading = document.createElement("h2");
+          heading.textContent = "Registered Users";
+          heading.style.marginTop = "2rem";
+          section.appendChild(heading);
+
+          const ul = document.createElement("ul");
+          data.forEach(user => {
+            const li = document.createElement("li");
+            li.textContent = `${user.ID} - ${user.NAME} - ${user.EMAIL}`;
+            ul.appendChild(li);
+          });
+
+          section.appendChild(ul);
+          document.body.appendChild(section);
+        })
+        .catch(error => {
+          console.error("❌ Failed to fetch users:", error);
+        });
+    </script>
   </body>
 </html>

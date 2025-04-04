@@ -1,4 +1,3 @@
-
 -- Drop old tables if needed
 BEGIN
   EXECUTE IMMEDIATE 'DROP TABLE tickets CASCADE CONSTRAINTS';
@@ -8,9 +7,15 @@ BEGIN
   EXECUTE IMMEDIATE 'DROP TABLE refresh_tokens CASCADE CONSTRAINTS';
   EXECUTE IMMEDIATE 'DROP TABLE password_reset_tokens CASCADE CONSTRAINTS';
   EXECUTE IMMEDIATE 'DROP TABLE email_verification_tokens CASCADE CONSTRAINTS';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE users_seq';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE refresh_tokens_seq';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE password_reset_tokens_seq';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE email_verif_seq';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE events_seq';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE pending_events_seq';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE tickets_seq';
 EXCEPTION
-  WHEN OTHERS THEN
-    NULL;
+  WHEN OTHERS THEN NULL;
 END;
 /
 
@@ -32,7 +37,7 @@ CREATE TABLE users (
 
 CREATE SEQUENCE users_seq START WITH 2 INCREMENT BY 1;
 
-CREATE OR REPLACE TRIGGER users_before_insert
+CREATE OR REPLACE TRIGGER trg_users_bi
 BEFORE INSERT ON users
 FOR EACH ROW
 BEGIN
@@ -40,7 +45,7 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE TRIGGER users_before_update
+CREATE OR REPLACE TRIGGER trg_users_bu
 BEFORE UPDATE ON users
 FOR EACH ROW
 BEGIN
@@ -48,7 +53,6 @@ BEGIN
 END;
 /
 
--- Insert one user
 INSERT INTO users (id, name, email, password, role, email_verified)
 VALUES (1, 'Alice Johnson', 'alice@example.com', 'securepassword', 'admin', 1);
 
@@ -64,7 +68,7 @@ CREATE TABLE refresh_tokens (
 
 CREATE SEQUENCE refresh_tokens_seq START WITH 1 INCREMENT BY 1;
 
-CREATE OR REPLACE TRIGGER refresh_tokens_before_insert
+CREATE OR REPLACE TRIGGER trg_refresh_bi
 BEFORE INSERT ON refresh_tokens
 FOR EACH ROW
 BEGIN
@@ -84,7 +88,7 @@ CREATE TABLE password_reset_tokens (
 
 CREATE SEQUENCE password_reset_tokens_seq START WITH 1 INCREMENT BY 1;
 
-CREATE OR REPLACE TRIGGER password_reset_tokens_before_insert
+CREATE OR REPLACE TRIGGER trg_prt_bi
 BEFORE INSERT ON password_reset_tokens
 FOR EACH ROW
 BEGIN
@@ -99,16 +103,16 @@ CREATE TABLE email_verification_tokens (
   token VARCHAR2(255) UNIQUE NOT NULL,
   expires_at TIMESTAMP NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_verification_token_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT fk_verif_token_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE SEQUENCE email_verification_tokens_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE email_verif_seq START WITH 1 INCREMENT BY 1;
 
-CREATE OR REPLACE TRIGGER email_verification_tokens_before_insert
+CREATE OR REPLACE TRIGGER trg_evtok_bi
 BEFORE INSERT ON email_verification_tokens
 FOR EACH ROW
 BEGIN
-  :NEW.id := email_verification_tokens_seq.NEXTVAL;
+  :NEW.id := email_verif_seq.NEXTVAL;
 END;
 /
 
@@ -133,7 +137,7 @@ CREATE TABLE events (
 
 CREATE SEQUENCE events_seq START WITH 2 INCREMENT BY 1;
 
-CREATE OR REPLACE TRIGGER events_before_insert
+CREATE OR REPLACE TRIGGER trg_events_bi
 BEFORE INSERT ON events
 FOR EACH ROW
 BEGIN
@@ -141,7 +145,7 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE TRIGGER events_before_update
+CREATE OR REPLACE TRIGGER trg_events_bu
 BEFORE UPDATE ON events
 FOR EACH ROW
 BEGIN
@@ -149,7 +153,6 @@ BEGIN
 END;
 /
 
--- Insert one event
 INSERT INTO events (id, title, description, image_url, event_date, time_start, time_end, location, category, price, total_tickets, created_by)
 VALUES (
   1,
@@ -189,7 +192,7 @@ CREATE TABLE pending_events (
 
 CREATE SEQUENCE pending_events_seq START WITH 2 INCREMENT BY 1;
 
-CREATE OR REPLACE TRIGGER pending_events_before_insert
+CREATE OR REPLACE TRIGGER trg_pevents_bi
 BEFORE INSERT ON pending_events
 FOR EACH ROW
 BEGIN
@@ -197,7 +200,7 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE TRIGGER pending_events_before_update
+CREATE OR REPLACE TRIGGER trg_pevents_bu
 BEFORE UPDATE ON pending_events
 FOR EACH ROW
 BEGIN
@@ -205,7 +208,6 @@ BEGIN
 END;
 /
 
--- Insert one pending event
 INSERT INTO pending_events (id, title, description, image_url, event_date, time_start, time_end, location, category, price, total_tickets, requester_id, status)
 VALUES (
   1,
@@ -237,7 +239,7 @@ CREATE TABLE tickets (
 
 CREATE SEQUENCE tickets_seq START WITH 2 INCREMENT BY 1;
 
-CREATE OR REPLACE TRIGGER tickets_before_insert
+CREATE OR REPLACE TRIGGER trg_tickets_bi
 BEFORE INSERT ON tickets
 FOR EACH ROW
 BEGIN
@@ -245,7 +247,5 @@ BEGIN
 END;
 /
 
--- Insert one ticket
 INSERT INTO tickets (id, event_id, user_id, quantity, status)
 VALUES (1, 1, 1, 2, 'booked');
-
