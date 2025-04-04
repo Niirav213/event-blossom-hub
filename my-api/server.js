@@ -100,13 +100,13 @@ app.post("/login", async (req, res) => {
 /* ---------- EVENTS ---------- */
 
 // Fetch all events
-app.get("/events", async (req, res) => {
+app.get("/api/events", async (req, res) => {
     const data = await runQuery("SELECT * FROM EVENTS ORDER BY EVENT_DATE");
     res.json(data);
 });
 
 // Fetch event by ID
-app.get("/api/events", async (req, res) => {
+app.get("/events/:id", async (req, res) => {
     const data = await runQuery("SELECT * FROM EVENTS WHERE ID = :1", [req.params.id]);
     if (data.length === 0) return res.status(404).json({ error: "Event not found" });
     res.json(data[0]);
