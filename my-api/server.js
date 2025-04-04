@@ -106,7 +106,7 @@ app.get("/events", async (req, res) => {
 });
 
 // Fetch event by ID
-app.get("/events/:id", async (req, res) => {
+app.get("/api/events", async (req, res) => {
     const data = await runQuery("SELECT * FROM EVENTS WHERE ID = :1", [req.params.id]);
     if (data.length === 0) return res.status(404).json({ error: "Event not found" });
     res.json(data[0]);
