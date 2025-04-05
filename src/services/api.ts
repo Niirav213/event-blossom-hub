@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 const API_URL = 'http://localhost:5000/api';
@@ -58,10 +57,18 @@ export const authService = {
     localStorage.removeItem('user');
   },
   
-  // Get current user
+  // Get current user - FIXED to handle null localStorage values
   getCurrentUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    try {
+      const userString = localStorage.getItem('user');
+      if (!userString) return null;
+      return JSON.parse(userString);
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      // If there's an error parsing, clear the corrupted data
+      localStorage.removeItem('user');
+      return null;
+    }
   },
   
   // Check if user is logged in
@@ -71,9 +78,15 @@ export const authService = {
   
   // Check if user is admin
   isAdmin: () => {
-    const user = localStorage.getItem('user');
-    if (!user) return false;
-    return JSON.parse(user).role === 'admin';
+    try {
+      const userString = localStorage.getItem('user');
+      if (!userString) return false;
+      const user = JSON.parse(userString);
+      return user?.role === 'admin';
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
   }
 };
 
