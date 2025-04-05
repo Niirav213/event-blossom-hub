@@ -32,6 +32,8 @@
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
+        margin: 0;
+        padding: 0;
       }
       
       #root {
@@ -39,6 +41,18 @@
         z-index: 1;
         background-color: rgba(255, 255, 255, 0.9);
         min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Add media query for desktop screens */
+      @media (min-width: 768px) {
+        #root {
+          max-width: 100%;
+          margin: 0 auto;
+          padding: 0;
+        }
       }
     </style>
   </body>
