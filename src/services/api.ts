@@ -1,12 +1,24 @@
+
 import { toast } from "sonner";
 
-const API_URL = 'http://localhost:5000/api';
+// Update API URL to match the server.js endpoint structure
+const API_URL = 'http://localhost:5000';
 
 // Helper to handle response
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Something went wrong');
+    // Check if response is HTML (like a 404 page)
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("text/html")) {
+      throw new Error(`Server returned ${response.status}: Endpoint not found`);
+    }
+    
+    try {
+      const error = await response.json();
+      throw new Error(error.message || `Error: ${response.status}`);
+    } catch (e) {
+      throw new Error(`Server error: ${response.status}`);
+    }
   }
   return response.json();
 };
@@ -16,7 +28,7 @@ export const authService = {
   // Register a new user
   register: async (userData: { name: string; email: string; password: string }) => {
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
@@ -35,7 +47,8 @@ export const authService = {
   // Login user
   login: async (credentials: { email: string; password: string }) => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      console.log('Attempting login to:', `${API_URL}/api/auth/login`);
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
@@ -57,7 +70,7 @@ export const authService = {
     localStorage.removeItem('user');
   },
   
-  // Get current user - FIXED to handle null localStorage values
+  // Get current user - handle potential JSON parsing errors
   getCurrentUser: () => {
     try {
       const userString = localStorage.getItem('user');

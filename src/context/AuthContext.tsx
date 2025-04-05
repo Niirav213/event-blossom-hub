@@ -25,17 +25,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
     // Check if user is already logged in
     const checkAuth = () => {
-      const storedUser = authService.getCurrentUser();
-      if (storedUser) {
-        setUser(storedUser);
+      try {
+        const storedUser = authService.getCurrentUser();
+        if (storedUser) {
+          setUser(storedUser);
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+      } finally {
+        setInitialCheckDone(true);
       }
-      setLoading(false);
     };
     
     checkAuth();
@@ -87,6 +93,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     loading
   };
+  
+  // Only render children after initial auth check is done
+  if (!initialCheckDone) {
+    return null; // Or a loading spinner
+  }
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

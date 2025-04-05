@@ -24,9 +24,14 @@ const SignInPage = () => {
       return;
     }
     
-    const success = await login(email, password);
-    if (success) {
-      navigate("/events");
+    try {
+      const success = await login(email, password);
+      if (success) {
+        navigate("/events");
+      }
+    } catch (error: any) {
+      // This catch is just a fallback, as login() already handles errors
+      setError(error.message || "Login failed. Please check your credentials.");
     }
   };
 
@@ -44,7 +49,7 @@ const SignInPage = () => {
           
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-start mb-6">
-              <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
+              <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
