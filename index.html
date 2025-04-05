@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -24,31 +25,21 @@
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Fetch and display user data from API -->
-    <script>
-      fetch("http://localhost:5000/users")
-        .then(response => response.json())
-        .then(data => {
-          console.log("✅ Fetched users from API:", data);
-          const section = document.createElement("section");
-          const heading = document.createElement("h2");
-          heading.textContent = "Registered Users";
-          heading.style.marginTop = "2rem";
-          section.appendChild(heading);
-
-          const ul = document.createElement("ul");
-          data.forEach(user => {
-            const li = document.createElement("li");
-            li.textContent = `${user.ID} - ${user.NAME} - ${user.EMAIL}`;
-            ul.appendChild(li);
-          });
-
-          section.appendChild(ul);
-          document.body.appendChild(section);
-        })
-        .catch(error => {
-          console.error("❌ Failed to fetch users:", error);
-        });
-    </script>
+    <!-- Background image -->
+    <style>
+      body {
+        background-image: url('https://images.unsplash.com/photo-1561839561-b13bcfe95249?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+      }
+      
+      #root {
+        position: relative;
+        z-index: 1;
+        background-color: rgba(255, 255, 255, 0.9);
+        min-height: 100vh;
+      }
+    </style>
   </body>
 </html>
