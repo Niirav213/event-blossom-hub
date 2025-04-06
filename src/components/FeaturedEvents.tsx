@@ -62,7 +62,7 @@ const FeaturedEvents = () => {
     price: event.price ? `$${event.price}` : 'Free'
   }));
   
-  // If we have no real events, use the sample events as fallback
+  // Display the formatted events
   const displayEvents = formattedEvents.length > 0 ? formattedEvents : [];
   
   if (loading) {

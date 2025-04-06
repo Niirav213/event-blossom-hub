@@ -39,9 +39,9 @@ type TicketData = {
   quantity?: number;
 };
 
-// Base API URL - use the actual server address instead of relative URLs
-// This should be replaced with the actual URL where your server is running
-const API_URL = 'http://localhost:5000/api';
+// Base API URL - Check if we're in development mode and use relative URL
+// This helps the app work in various environments including deployment previews
+const API_URL = import.meta.env.DEV ? '/api' : '/api';
 
 // Helper functions
 const getAuthHeaders = () => {
@@ -110,7 +110,12 @@ const mockEvents = [
 // Helper function to check if API is available
 const isApiAvailable = async () => {
   try {
-    const response = await fetch(`${API_URL}/test-db`, { method: 'GET' });
+    console.log("Checking API availability at:", `${API_URL}/test-db`);
+    const response = await fetch(`${API_URL}/test-db`, { 
+      method: 'GET',
+      // Adding a timeout to prevent long waits
+      signal: AbortSignal.timeout(3000) 
+    });
     return response.ok;
   } catch (error) {
     console.warn("API not available, using mock data:", error);
