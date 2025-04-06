@@ -6,8 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Calendar, MapPin, Tag, DollarSign, Users, Save, Loader2 } from "lucide-react";
+import { Calendar, Tag, DollarSign, Users, Save, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -22,6 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { eventsService } from "@/services/api";
 
 const eventSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -30,7 +30,6 @@ const eventSchema = z.object({
   date: z.string().min(1, "Date is required"),
   time_start: z.string().min(1, "Start time is required"),
   time_end: z.string().min(1, "End time is required"),
-  location: z.string().min(5, "Location must be at least 5 characters"),
   category: z.string().min(1, "Category is required"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   total_tickets: z.coerce.number().int().positive("Total tickets must be a positive integer")
@@ -40,7 +39,7 @@ type EventFormValues = z.infer<typeof eventSchema>;
 
 const CreateEventPage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<EventFormValues>({
@@ -52,7 +51,6 @@ const CreateEventPage = () => {
       date: new Date().toISOString().split("T")[0],
       time_start: "09:00",
       time_end: "17:00",
-      location: "",
       category: "academic",
       price: 0,
       total_tickets: 100
@@ -74,8 +72,13 @@ const CreateEventPage = () => {
     setIsSubmitting(true);
 
     try {
-      // For now, just show a toast - in real app we'd submit to API
-      toast.success("Your event request has been submitted for review");
+      // Submit the event data to be created
+      await eventsService.createEvent({
+        ...data,
+        created_by: user?.id
+      });
+      
+      toast.success("Your event has been created successfully!");
       setTimeout(() => {
         navigate("/events");
       }, 1500);
@@ -210,27 +213,6 @@ const CreateEventPage = () => {
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input
-                            placeholder="Event location (e.g. Main Hall, Sports Complex)"
-                            className="pl-10"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -336,12 +318,12 @@ const CreateEventPage = () => {
                   {isSubmitting ? (
                     <span className="flex items-center">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
+                      Creating Event...
                     </span>
                   ) : (
                     <span className="flex items-center">
                       <Save className="mr-2 h-4 w-4" />
-                      Submit for Review
+                      Create Event
                     </span>
                   )}
                 </Button>

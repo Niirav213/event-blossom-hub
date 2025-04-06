@@ -1,127 +1,94 @@
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Tag, Users, Ticket, DollarSign, User } from "lucide-react";
+import { Calendar, Clock, TicketIcon, Users, DollarSign, Tag } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { eventsService, ticketsService } from "@/services/api";
-import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-
-interface EventDetail {
-  id: number;
-  title: string;
-  description: string;
-  date: string;
-  time_start: string;
-  time_end: string;
-  location: string;
-  category: string;
-  price: number;
-  total_tickets: number;
-  available_tickets: number;
-  image_url: string;
-  organizer_name: string;
-}
+import { toast } from "sonner";
+import TicketPayment from "@/components/TicketPayment";
 
 const EventDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<EventDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPurchasing, setIsPurchasing] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, isAdmin } = useAuth();
-
+  const { isAuthenticated } = useAuth();
+  const [event, setEvent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  
   useEffect(() => {
     const fetchEvent = async () => {
       if (!id) return;
       
       try {
-        setIsLoading(true);
+        setLoading(true);
         const data = await eventsService.getEventById(id);
         setEvent(data);
-      } catch (error) {
-        toast.error("Failed to load event details");
-        navigate("/events");
+      } catch (err: any) {
+        console.error("Error fetching event:", err);
+        setError(err.message || "Failed to load event details");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
+    
     fetchEvent();
-  }, [id, navigate]);
-
-  const handlePurchaseTicket = async () => {
+  }, [id]);
+  
+  const handleTicketPurchase = () => {
     if (!isAuthenticated) {
       toast.error("Please sign in to purchase tickets");
       navigate("/sign-in");
       return;
     }
-
-    if (!event) return;
-
-    if (event.available_tickets <= 0) {
-      toast.error("Sorry, this event is sold out");
-      return;
-    }
-
-    try {
-      setIsPurchasing(true);
-      await ticketsService.purchaseTicket(event.id.toString());
-      toast.success("Ticket purchased successfully!");
-      // Update available tickets count
-      setEvent({
-        ...event,
-        available_tickets: event.available_tickets - 1
-      });
-      
-      // Redirect to tickets page
-      setTimeout(() => {
-        navigate("/tickets");
-      }, 1500);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to purchase ticket");
-    } finally {
-      setIsPurchasing(false);
-    }
+    
+    setPaymentOpen(true);
   };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
+  
+  const handlePaymentComplete = () => {
+    setPaymentOpen(false);
+    navigate("/tickets");
+  };
+  
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
-    });
+    };
+    return new Date(dateString).toLocaleDateString('en-US', options);
   };
-
-  if (isLoading) {
+  
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-eventPurple"></div>
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-8 w-56 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          </div>
         </main>
         <Footer />
       </div>
     );
   }
-
-  if (!event) {
+  
+  if (error || !event) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-700">Event Not Found</h2>
-            <p className="text-gray-500 mt-2">The event you're looking for doesn't exist or has been removed.</p>
-            <Button 
-              className="mt-4 bg-eventPurple hover:bg-eventPurple-dark"
-              onClick={() => navigate("/events")}
-            >
-              Browse Events
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg">
+            <h2 className="text-xl font-bold mb-2">Error Loading Event</h2>
+            <p>{error || "Event not found"}</p>
+            <Button asChild className="mt-4">
+              <Link to="/events">Back to Events</Link>
             </Button>
           </div>
         </main>
@@ -129,183 +96,109 @@ const EventDetailPage = () => {
       </div>
     );
   }
-
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-grow">
-        {/* Hero section with image and overlay */}
-        <div className="relative h-80 lg:h-96">
-          <div 
-            className="absolute inset-0 bg-cover bg-center" 
-            style={{ backgroundImage: `url(${event.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87'})` }}
-          >
-            <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-          </div>
-          <div className="container mx-auto px-4 relative h-full flex items-end pb-8">
-            <div className="text-white">
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">{event.title}</h1>
-              <div className="flex items-center gap-2 text-gray-200">
-                <Calendar className="h-4 w-4" />
-                <span>{formatDate(event.date)}</span>
-              </div>
+        {/* Hero image */}
+        <div className="relative h-64 md:h-96 overflow-hidden">
+          <img 
+            src={event.image_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80"} 
+            alt={event.title} 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-60"></div>
+          <div className="absolute bottom-0 left-0 p-6 md:p-10 text-white">
+            <h1 className="text-2xl md:text-4xl font-bold mb-2">{event.title}</h1>
+            <div className="flex items-center text-sm md:text-base">
+              <Calendar className="h-5 w-5 mr-2" />
+              <span>{formatDate(event.date)}</span>
             </div>
           </div>
         </div>
         
         {/* Event details */}
         <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Main content */}
-            <div className="flex-grow">
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Main details */}
+              <div className="md:col-span-2">
                 <h2 className="text-xl font-bold mb-4">About This Event</h2>
-                <p className="whitespace-pre-line text-gray-700">
-                  {event.description}
-                </p>
-              </div>
-              
-              {isAdmin && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-                  <h3 className="font-medium text-amber-700 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Admin Actions
-                  </h3>
-                  <div className="mt-2 flex gap-3">
-                    <Button 
-                      variant="outline" 
-                      className="border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white"
-                      onClick={() => navigate(`/admin/events/${event.id}/edit`)}
-                    >
-                      Edit Event
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to delete this event?")) {
-                          eventsService.deleteEvent(event.id.toString())
-                            .then(() => {
-                              toast.success("Event deleted successfully");
-                              navigate("/admin");
-                            })
-                            .catch(() => {
-                              toast.error("Failed to delete event");
-                            });
-                        }
-                      }}
-                    >
-                      Delete Event
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold mb-4">Event Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-start">
-                    <Calendar className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-gray-700">Date</h4>
-                      <p>{formatDate(event.date)}</p>
+                <p className="text-gray-700 mb-6 whitespace-pre-line">{event.description}</p>
+                
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h3 className="text-lg font-semibold mb-4">Event Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-start">
+                      <Calendar className="h-5 w-5 mr-3 text-eventPurple flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Date</div>
+                        <div className="text-gray-600">{formatDate(event.date)}</div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <Clock className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-gray-700">Time</h4>
-                      <p>{event.time_start} - {event.time_end}</p>
+                    <div className="flex items-start">
+                      <Clock className="h-5 w-5 mr-3 text-eventPurple flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Time</div>
+                        <div className="text-gray-600">{event.time_start} - {event.time_end}</div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <MapPin className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-gray-700">Location</h4>
-                      <p>{event.location}</p>
+                    <div className="flex items-start">
+                      <Tag className="h-5 w-5 mr-3 text-eventPurple flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Category</div>
+                        <div className="text-gray-600 capitalize">{event.category}</div>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <Tag className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-gray-700">Category</h4>
-                      <p className="capitalize">{event.category}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <Users className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-gray-700">Organizer</h4>
-                      <p>{event.organizer_name}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start">
-                    <Ticket className="h-5 w-5 mr-3 text-gray-500 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-gray-700">Available Tickets</h4>
-                      <p>{event.available_tickets} / {event.total_tickets}</p>
+                    <div className="flex items-start">
+                      <Users className="h-5 w-5 mr-3 text-eventPurple flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Capacity</div>
+                        <div className="text-gray-600">{event.total_tickets} attendees</div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Sidebar */}
-            <div className="md:w-80">
-              <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
-                <div className="mb-4">
-                  <h3 className="text-2xl font-bold text-gray-900 flex items-center">
-                    <DollarSign className="h-6 w-6 mr-1" />
-                    {event.price > 0 ? `$${event.price.toFixed(2)}` : "Free"}
-                  </h3>
+              
+              {/* Ticket purchase card */}
+              <div>
+                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h3 className="text-xl font-bold mb-4">Tickets</h3>
                   
-                  {event.available_tickets > 0 ? (
-                    <span className="text-green-600 text-sm font-medium">
-                      {event.available_tickets} tickets left
-                    </span>
-                  ) : (
-                    <span className="text-red-600 text-sm font-medium">
-                      Sold Out
-                    </span>
-                  )}
-                </div>
-                
-                <Button 
-                  className="w-full bg-eventPurple hover:bg-eventPurple-dark mb-4"
-                  disabled={event.available_tickets <= 0 || isPurchasing}
-                  onClick={handlePurchaseTicket}
-                >
-                  {isPurchasing ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    <span className="flex items-center">
-                      <Ticket className="h-4 w-4 mr-2" />
-                      {event.price > 0 ? 'Purchase Ticket' : 'Register for Event'}
-                    </span>
-                  )}
-                </Button>
-                
-                <div className="text-sm text-gray-600">
-                  <p className="mb-2">
-                    <strong>Date:</strong> {formatDate(event.date)}
-                  </p>
-                  <p className="mb-2">
-                    <strong>Time:</strong> {event.time_start} - {event.time_end}
-                  </p>
-                  <p>
-                    <strong>Location:</strong> {event.location}
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="font-medium">Price</div>
+                    <div className="text-2xl font-bold flex items-center">
+                      <DollarSign className="h-5 w-5 text-eventPurple" />
+                      {event.price ? event.price.toFixed(2) : "0.00"}
+                    </div>
+                  </div>
+                  
+                  <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="w-full bg-eventPurple hover:bg-eventPurple-dark"
+                        onClick={handleTicketPurchase}
+                      >
+                        <TicketIcon className="mr-2 h-4 w-4" />
+                        Purchase Ticket
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <TicketPayment 
+                        eventId={id!}
+                        eventName={event.title}
+                        price={event.price || 0}
+                        onPaymentComplete={handlePaymentComplete}
+                        onCancel={() => setPaymentOpen(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <p className="text-sm text-gray-500 mt-4 text-center">
+                    Secure checkout powered by our payment system
                   </p>
                 </div>
               </div>

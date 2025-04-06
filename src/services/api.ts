@@ -1,8 +1,9 @@
 
 import { toast } from "sonner";
 
-// Update API URL to match the server.js endpoint structure
-const API_URL = 'http://localhost:5000';
+// Use the server URL without specifying /api to match the server.js structure
+// For deployed environments, we'll use relative URLs
+const API_URL = '';
 
 // Helper to handle response
 const handleResponse = async (response: Response) => {
