@@ -22,7 +22,7 @@ type RegisterData = {
 
 type EventData = {
   title: string;
-  description?: string;
+  description: string;
   image_url?: string;
   date: string;
   time_start: string;

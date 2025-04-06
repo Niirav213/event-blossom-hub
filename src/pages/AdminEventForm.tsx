@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -116,7 +117,8 @@ const AdminEventForm = () => {
 
     try {
       if (isEditMode && id) {
-        // Use required field data when updating
+        // When updating, ensure all required fields are included
+        // Even though the API accepts partial updates, our TypeScript needs all required fields
         await eventsService.updateEvent(id, {
           title: data.title,
           description: data.description,
@@ -131,7 +133,18 @@ const AdminEventForm = () => {
         });
         toast.success("Event updated successfully");
       } else {
-        await eventsService.createEvent(data);
+        await eventsService.createEvent({
+          title: data.title,
+          description: data.description,
+          image_url: data.image_url,
+          date: data.date,
+          time_start: data.time_start,
+          time_end: data.time_end,
+          location: data.location,
+          category: data.category,
+          price: data.price,
+          total_tickets: data.total_tickets
+        });
         toast.success("Event created successfully");
       }
       navigate("/admin");

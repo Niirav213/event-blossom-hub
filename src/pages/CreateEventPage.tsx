@@ -74,9 +74,18 @@ const CreateEventPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Submit the event data to be created
+      // Ensuring all required fields are provided
       await eventsService.createEvent({
-        ...data,
+        title: data.title,
+        description: data.description,
+        image_url: data.image_url,
+        date: data.date,
+        time_start: data.time_start,
+        time_end: data.time_end,
+        location: data.location,
+        category: data.category,
+        price: data.price,
+        total_tickets: data.total_tickets,
         created_by: user?.id
       });
       
