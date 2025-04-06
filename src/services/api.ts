@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 // Types
@@ -106,6 +105,28 @@ const mockEvents = [
     available_tickets: 280
   }
 ];
+
+// Helper function to get locally stored custom events
+const getLocalEvents = () => {
+  try {
+    const storedEvents = localStorage.getItem('customEvents');
+    return storedEvents ? JSON.parse(storedEvents) : [];
+  } catch (error) {
+    console.error("Error retrieving local events:", error);
+    return [];
+  }
+};
+
+// Helper function to add a custom event to localStorage
+const addLocalEvent = (event: any) => {
+  try {
+    const existingEvents = getLocalEvents();
+    existingEvents.push(event);
+    localStorage.setItem('customEvents', JSON.stringify(existingEvents));
+  } catch (error) {
+    console.error("Error saving local event:", error);
+  }
+};
 
 // Helper function to check if API is available
 const isApiAvailable = async () => {
@@ -250,18 +271,20 @@ export const eventsService = {
       const apiAvailable = await isApiAvailable();
       
       if (!apiAvailable) {
-        // Return mock data for development
+        // Return mock data and local events for development
         console.log("Using mock events data");
-        return mockEvents;
+        const localEvents = getLocalEvents();
+        return [...mockEvents, ...localEvents];
       }
       
       const response = await fetch(`${API_URL}/events`);
       return await handleResponse(response);
     } catch (error) {
       console.error("Error fetching events:", error);
-      // Fallback to mock data
+      // Fallback to mock data and local events
       console.log("Falling back to mock events due to error");
-      return mockEvents;
+      const localEvents = getLocalEvents();
+      return [...mockEvents, ...localEvents];
     }
   },
   
@@ -271,10 +294,17 @@ export const eventsService = {
       const apiAvailable = await isApiAvailable();
       
       if (!apiAvailable) {
+        // First check in localStorage
+        const localEvents = getLocalEvents();
+        const localEvent = localEvents.find((e: any) => e.id === id);
+        
+        // Then check mock events if not found in localStorage
+        if (localEvent) return localEvent;
+        
         // Find mock event by ID
-        const event = mockEvents.find(e => e.id === id);
-        if (!event) throw new Error("Event not found");
-        return event;
+        const mockEvent = mockEvents.find(e => e.id === id);
+        if (!mockEvent) throw new Error("Event not found");
+        return mockEvent;
       }
       
       const response = await fetch(`${API_URL}/events/${id}`);
@@ -293,8 +323,19 @@ export const eventsService = {
       if (!apiAvailable) {
         // Mock event creation
         console.log("Mock event creation:", data);
+        
+        // Create a mock event with a unique ID
+        const newEvent = {
+          ...data,
+          id: Date.now().toString(),
+          available_tickets: data.total_tickets
+        };
+        
+        // Store in localStorage to persist between page navigations
+        addLocalEvent(newEvent);
+        
         toast.success("Event created successfully (mock)");
-        return { ...data, id: Date.now().toString() };
+        return newEvent;
       }
       
       const response = await fetch(`${API_URL}/events`, {

@@ -43,6 +43,19 @@ const FeaturedEvents = () => {
     };
     
     fetchEvents();
+    
+    // Add event listener to refresh when localStorage changes (for cross-tab updates)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'customEvents') {
+        fetchEvents();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
   
   // Format events to match the EventCard component props
