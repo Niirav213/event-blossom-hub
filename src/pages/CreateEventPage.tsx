@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Tag, DollarSign, Users, Save, Loader2 } from "lucide-react";
+import { Calendar, MapPin, Tag, DollarSign, Users, Save, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -30,6 +30,7 @@ const eventSchema = z.object({
   date: z.string().min(1, "Date is required"),
   time_start: z.string().min(1, "Start time is required"),
   time_end: z.string().min(1, "End time is required"),
+  location: z.string().min(5, "Location is required and must be at least 5 characters"),
   category: z.string().min(1, "Category is required"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   total_tickets: z.coerce.number().int().positive("Total tickets must be a positive integer")
@@ -51,6 +52,7 @@ const CreateEventPage = () => {
       date: new Date().toISOString().split("T")[0],
       time_start: "09:00",
       time_end: "17:00",
+      location: "",
       category: "academic",
       price: 0,
       total_tickets: 100
@@ -167,6 +169,27 @@ const CreateEventPage = () => {
                           <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input
                             type="date"
+                            className="pl-10"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Event location"
                             className="pl-10"
                             {...field}
                           />

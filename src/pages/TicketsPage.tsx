@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -31,7 +30,7 @@ const TicketsPage = () => {
     const fetchTickets = async () => {
       try {
         setIsLoading(true);
-        const data = await ticketsService.getUserTickets();
+        const data = await ticketsService.getMyTickets();
         setTickets(data);
       } catch (error) {
         toast.error("Failed to load your tickets");
@@ -119,7 +118,12 @@ const TicketsPage = () => {
                         <div className="space-y-2">
                           <div className="flex items-center text-sm text-gray-600">
                             <Calendar className="h-4 w-4 mr-2" />
-                            {formatDate(ticket.date)}
+                            {new Date(ticket.date).toLocaleDateString('en-US', { 
+                              weekday: 'short', 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}
                           </div>
                           
                           <div className="flex items-center text-sm text-gray-600">

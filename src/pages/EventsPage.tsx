@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -49,9 +48,13 @@ const EventsPage = () => {
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
-        const categoryParam = selectedCategory === 'All Categories' ? '' : selectedCategory;
-        const data = await eventsService.getAllEvents(categoryParam);
-        setEvents(data);
+        const data = await eventsService.getAllEvents();
+        
+        const filteredData = selectedCategory && selectedCategory !== 'All Categories' 
+          ? data.filter((event: Event) => event.category === selectedCategory)
+          : data;
+          
+        setEvents(filteredData);
       } catch (error) {
         toast.error("Failed to load events");
         console.error("Error fetching events:", error);
@@ -64,9 +67,6 @@ const EventsPage = () => {
   }, [selectedCategory]);
   
   const handleSearch = () => {
-    // Filter events based on search query and location
-    // This is client-side filtering for demo purposes
-    // In a real application, you'd send these filters to your API
     if (!searchQuery && !locationQuery) return;
     
     toast.info(`Searching for "${searchQuery}" in ${locationQuery || "all locations"}`);
@@ -76,7 +76,6 @@ const EventsPage = () => {
     const category = e.target.value;
     setSelectedCategory(category);
     
-    // Update URL with category param
     if (category && category !== 'All Categories') {
       setSearchParams({ category });
     } else {
@@ -84,7 +83,6 @@ const EventsPage = () => {
     }
   };
   
-  // Format event data for EventCard component
   const formatEventForCard = (event: Event) => ({
     id: event.id.toString(),
     title: event.title,
@@ -139,7 +137,7 @@ const EventsPage = () => {
                 </div>
                 <Button 
                   className="bg-eventPurple hover:bg-eventPurple-dark text-white"
-                  onClick={handleSearch}
+                  onClick={() => toast.info(`Searching for "${searchQuery}" in ${locationQuery || "all locations"}`)}
                 >
                   Search
                 </Button>
@@ -164,7 +162,16 @@ const EventsPage = () => {
                     <select 
                       className="w-full rounded-md border border-gray-200 py-2 px-3"
                       value={selectedCategory}
-                      onChange={handleCategoryChange}
+                      onChange={(e) => {
+                        const category = e.target.value;
+                        setSelectedCategory(category);
+                        
+                        if (category && category !== 'All Categories') {
+                          setSearchParams({ category });
+                        } else {
+                          setSearchParams({});
+                        }
+                      }}
                     >
                       {categories.map((cat, idx) => (
                         <option key={idx} value={cat === 'All Categories' ? '' : cat}>{cat}</option>
@@ -225,7 +232,21 @@ const EventsPage = () => {
             ) : events.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {events.map((event) => (
-                  <EventCard key={event.id} {...formatEventForCard(event)} />
+                  <EventCard 
+                    key={event.id} 
+                    id={event.id.toString()}
+                    title={event.title}
+                    date={new Date(event.date).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                    time={`${event.time_start} - ${event.time_end}`}
+                    location={event.location}
+                    image={event.image_url}
+                    category={event.category}
+                    price={event.price > 0 ? `$${event.price}` : "Free"}
+                  />
                 ))}
               </div>
             ) : (

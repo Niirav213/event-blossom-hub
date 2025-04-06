@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -6,7 +5,6 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Calendar, MapPin, Tag, DollarSign, Users, Save, Loader2 } from "lucide-react";
 import { eventsService } from "@/services/api";
 import { toast } from "sonner";
@@ -85,7 +83,7 @@ const AdminEventForm = () => {
       if (isEditMode) {
         setLoading(true);
         try {
-          const event = await eventsService.getEventById(id);
+          const event = await eventsService.getEventById(id as string);
           // Format date and time for form inputs
           const date = new Date(event.date).toISOString().split("T")[0];
           
@@ -117,8 +115,20 @@ const AdminEventForm = () => {
     setIsSubmitting(true);
 
     try {
-      if (isEditMode) {
-        await eventsService.updateEvent(id, data);
+      if (isEditMode && id) {
+        // Use required field data when updating
+        await eventsService.updateEvent(id, {
+          title: data.title,
+          description: data.description,
+          image_url: data.image_url,
+          date: data.date,
+          time_start: data.time_start,
+          time_end: data.time_end,
+          location: data.location,
+          category: data.category,
+          price: data.price,
+          total_tickets: data.total_tickets
+        });
         toast.success("Event updated successfully");
       } else {
         await eventsService.createEvent(data);

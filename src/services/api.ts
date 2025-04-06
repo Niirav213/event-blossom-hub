@@ -173,6 +173,33 @@ export const eventsService = {
       console.error("Error creating event:", error);
       throw error;
     }
+  },
+
+  async updateEvent(id: string, data: Partial<EventData>) {
+    try {
+      const response = await fetch(`${API_URL}/events/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+      });
+      return await handleResponse(response);
+    } catch (error) {
+      console.error("Error updating event:", error);
+      throw error;
+    }
+  },
+
+  async deleteEvent(id: string) {
+    try {
+      const response = await fetch(`${API_URL}/events/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      return await handleResponse(response);
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      throw error;
+    }
   }
 };
 
@@ -202,5 +229,10 @@ export const ticketsService = {
       console.error("Error fetching tickets:", error);
       throw error;
     }
+  },
+
+  async getUserTickets() {
+    // Alias for getMyTickets to fix the error
+    return this.getMyTickets();
   }
 };
