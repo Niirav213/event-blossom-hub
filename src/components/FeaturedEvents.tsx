@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { eventsService } from "@/services/api";
+import { toast } from "sonner";
 
 // Define a proper Event type
 type Event = {
   id: string;
   title: string;
+  event_date?: string;
   date?: string;
   time_start?: string;
   time_end?: string;
@@ -29,10 +31,12 @@ const FeaturedEvents = () => {
       try {
         setLoading(true);
         const fetchedEvents = await eventsService.getAllEvents();
+        console.log("Fetched events:", fetchedEvents);
         setEvents(fetchedEvents);
       } catch (err: any) {
         console.error("Error fetching events:", err);
         setError(err.message || "Failed to load events");
+        toast.error("Failed to load events");
       } finally {
         setLoading(false);
       }
@@ -45,7 +49,7 @@ const FeaturedEvents = () => {
   const formattedEvents = events.map(event => ({
     id: event.id,
     title: event.title,
-    date: event.date ? new Date(event.date).toLocaleDateString('en-US', {
+    date: event.event_date || event.date ? new Date(event.event_date || event.date).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'

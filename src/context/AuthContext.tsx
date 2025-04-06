@@ -1,6 +1,6 @@
 
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { authService } from "../services/api";
 import { toast } from "sonner";
 
@@ -8,7 +8,7 @@ type User = {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "student" | "faculty";
+  role: string;
 };
 
 type AuthContextType = {
@@ -25,9 +25,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Protected routes that need authentication
+  const protectedRoutes = ['/tickets', '/create-event', '/admin'];
   
   useEffect(() => {
     // Check if user is already logged in
@@ -41,11 +45,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Auth check error:", error);
       } finally {
         setInitialCheckDone(true);
+        setLoading(false);
       }
     };
     
     checkAuth();
   }, []);
+  
+  // Redirect unauthenticated users from protected routes
+  useEffect(() => {
+    if (initialCheckDone && !loading) {
+      const isProtected = protectedRoutes.some(route => location.pathname.startsWith(route));
+      
+      if (isProtected && !user) {
+        toast.error("Please sign in to access this page");
+        navigate('/sign-in', { replace: true });
+      }
+    }
+  }, [location.pathname, user, initialCheckDone, loading, navigate]);
   
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -96,7 +113,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   // Only render children after initial auth check is done
   if (!initialCheckDone) {
-    return null; // Or a loading spinner
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-eventPurple"></div>
+      </div>
+    ); 
   }
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

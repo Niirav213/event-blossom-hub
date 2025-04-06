@@ -1,15 +1,23 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { SearchIcon, Menu, X, Calendar, Ticket, LogIn, Info } from "lucide-react";
+import { SearchIcon, Menu, X, Calendar, Ticket, LogIn, LogOut, User, UserPlus, Plus } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
+  const location = useLocation();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  // Close menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location]);
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -25,9 +33,16 @@ const Navbar = () => {
             <Link to="/events" className="text-gray-700 hover:text-eventPurple transition-colors">
               Events
             </Link>
-            <Link to="/tickets" className="text-gray-700 hover:text-eventPurple transition-colors">
-              My Tickets
-            </Link>
+            {isAuthenticated && (
+              <>
+                <Link to="/tickets" className="text-gray-700 hover:text-eventPurple transition-colors">
+                  My Tickets
+                </Link>
+                <Link to="/create-event" className="text-gray-700 hover:text-eventPurple transition-colors">
+                  Host Event
+                </Link>
+              </>
+            )}
             <Link to="/about" className="text-gray-700 hover:text-eventPurple transition-colors">
               About
             </Link>
@@ -42,12 +57,36 @@ const Navbar = () => {
               />
               <SearchIcon className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
             </div>
-            <Button asChild className="bg-eventPurple hover:bg-eventPurple-dark">
-              <Link to="/sign-in">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In
-              </Link>
-            </Button>
+            
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-700">Hi, {user?.name?.split(' ')[0]}</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
+                  onClick={logout}
+                >
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button asChild variant="outline" className="border-eventPurple text-eventPurple hover:bg-eventPurple hover:text-white">
+                  <Link to="/sign-up">
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Sign Up
+                  </Link>
+                </Button>
+                <Button asChild className="bg-eventPurple hover:bg-eventPurple-dark">
+                  <Link to="/sign-in">
+                    <LogIn className="h-4 w-4 mr-1" />
+                    Sign In
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -67,24 +106,36 @@ const Navbar = () => {
               <Link 
                 to="/events" 
                 className="text-gray-700 hover:text-eventPurple transition-colors py-2"
-                onClick={() => setIsMenuOpen(false)}
               >
                 Events
               </Link>
-              <Link 
-                to="/tickets" 
-                className="text-gray-700 hover:text-eventPurple transition-colors py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                My Tickets
-              </Link>
+              
+              {isAuthenticated ? (
+                <>
+                  <Link 
+                    to="/tickets" 
+                    className="text-gray-700 hover:text-eventPurple transition-colors py-2"
+                  >
+                    <Ticket className="h-4 w-4 inline mr-2" />
+                    My Tickets
+                  </Link>
+                  <Link 
+                    to="/create-event" 
+                    className="text-gray-700 hover:text-eventPurple transition-colors py-2"
+                  >
+                    <Plus className="h-4 w-4 inline mr-2" />
+                    Host Event
+                  </Link>
+                </>
+              ) : null}
+              
               <Link 
                 to="/about" 
                 className="text-gray-700 hover:text-eventPurple transition-colors py-2"
-                onClick={() => setIsMenuOpen(false)}
               >
                 About
               </Link>
+              
               <div className="relative mt-2">
                 <input
                   type="text"
@@ -93,12 +144,37 @@ const Navbar = () => {
                 />
                 <SearchIcon className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
               </div>
-              <Button asChild className="bg-eventPurple hover:bg-eventPurple-dark w-full mt-2">
-                <Link to="/sign-in">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Sign In
-                </Link>
-              </Button>
+              
+              {isAuthenticated ? (
+                <div className="pt-2 border-t mt-2">
+                  <div className="flex items-center mb-2">
+                    <User className="h-5 w-5 text-eventPurple mr-2" />
+                    <span className="text-sm font-medium">{user?.name}</span>
+                  </div>
+                  <Button 
+                    onClick={logout}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <div className="pt-2 border-t mt-2 space-y-2">
+                  <Button asChild className="w-full bg-eventPurple hover:bg-eventPurple-dark">
+                    <Link to="/sign-in">
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Sign In
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full border-eventPurple text-eventPurple hover:bg-eventPurple hover:text-white">
+                    <Link to="/sign-up">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Sign Up
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
