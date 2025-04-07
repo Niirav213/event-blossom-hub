@@ -1,12 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Ticket, Calendar, Clock, MapPin, Download, Loader2 } from "lucide-react";
+import { Ticket, Calendar, Clock, MapPin, Download, Loader2, QrCode } from "lucide-react";
 import { ticketsService } from "@/services/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 interface UserTicket {
   id: number;
@@ -54,16 +56,29 @@ const TicketsPage = () => {
       year: 'numeric' 
     });
   };
+
+  const getStatusBadgeColors = (status: string) => {
+    switch(status) {
+      case 'purchased':
+        return 'bg-green-100 text-green-800';
+      case 'used':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
   
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
       
       <main className="flex-grow">
-        <div className="bg-eventPurple text-white py-10">
+        <div className="border-b border-gray-200 bg-white py-8">
           <div className="container mx-auto px-4">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">My Tickets</h1>
-            <p className="text-lg">Manage your event tickets here</p>
+            <h1 className="text-3xl md:text-4xl font-bold mb-2 text-gray-900">My Tickets</h1>
+            <p className="text-lg text-gray-600">Manage all your event tickets in one place</p>
           </div>
         </div>
         
@@ -74,10 +89,21 @@ const TicketsPage = () => {
             </div>
           ) : tickets.length > 0 ? (
             <>
-              <h2 className="text-xl font-semibold mb-6">{tickets.length} Ticket(s) Found</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">{tickets.length} Ticket{tickets.length !== 1 ? 's' : ''}</h2>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.location.href = '/events'}
+                  className="border-eventPurple text-eventPurple hover:bg-eventPurple hover:text-white"
+                >
+                  Browse More Events
+                </Button>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {tickets.map((ticket) => (
-                  <div key={ticket.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+                  <div key={ticket.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-200">
                     <div className="flex flex-col md:flex-row">
                       <div 
                         className="md:w-1/3 bg-cover bg-center h-40 md:h-auto" 
@@ -96,43 +122,34 @@ const TicketsPage = () => {
                               {ticket.event_title}
                             </Link>
                             <div className="flex items-center mt-1">
-                              <span className={`
-                                px-2 py-1 text-xs font-medium rounded-full 
-                                ${ticket.status === 'purchased' ? 'bg-green-100 text-green-800' : 
-                                  ticket.status === 'used' ? 'bg-gray-100 text-gray-800' : 
-                                  'bg-red-100 text-red-800'}
-                              `}>
+                              <Badge className={`${getStatusBadgeColors(ticket.status)}`}>
                                 {ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
-                              </span>
+                              </Badge>
                             </div>
                           </div>
                           <Button 
                             variant="ghost" 
                             size="sm"
                             className="text-gray-500 hover:text-eventPurple"
+                            onClick={() => toast.info("Downloading ticket...")}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
                         </div>
                         
-                        <div className="space-y-2">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            {new Date(ticket.date).toLocaleDateString('en-US', { 
-                              weekday: 'short', 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}
+                        <div className="space-y-2 text-gray-600">
+                          <div className="flex items-center text-sm">
+                            <Calendar className="h-4 w-4 mr-2 text-eventPurple" />
+                            {formatDate(ticket.date)}
                           </div>
                           
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="h-4 w-4 mr-2" />
+                          <div className="flex items-center text-sm">
+                            <Clock className="h-4 w-4 mr-2 text-eventPurple" />
                             {ticket.time_start}
                           </div>
                           
-                          <div className="flex items-center text-sm text-gray-600">
-                            <MapPin className="h-4 w-4 mr-2" />
+                          <div className="flex items-center text-sm">
+                            <MapPin className="h-4 w-4 mr-2 text-eventPurple" />
                             {ticket.location}
                           </div>
                         </div>
@@ -150,14 +167,13 @@ const TicketsPage = () => {
                         
                         <div className="mt-4">
                           <Button 
-                            className="w-full bg-eventPurple hover:bg-eventPurple-dark"
+                            className="w-full bg-eventPurple hover:bg-eventPurple-dark flex items-center justify-center"
                             onClick={() => {
-                              // In a real app, this would show the ticket QR code or ticket details
                               toast.info(`Viewing ticket: ${ticket.ticket_code}`);
                             }}
                           >
-                            <Ticket className="h-4 w-4 mr-2" />
-                            View Ticket
+                            <QrCode className="h-4 w-4 mr-2" />
+                            View Ticket QR
                           </Button>
                         </div>
                       </div>
@@ -167,7 +183,7 @@ const TicketsPage = () => {
               </div>
             </>
           ) : (
-            <div className="text-center py-16 bg-gray-50 rounded-lg">
+            <div className="text-center py-16 bg-gray-50 rounded-lg border border-gray-200">
               <div className="inline-block p-4 rounded-full bg-gray-100 mb-4">
                 <Ticket className="h-10 w-10 text-gray-400" />
               </div>

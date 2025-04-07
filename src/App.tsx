@@ -28,6 +28,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// Remove the old App.css import which had some background styling
+// import './App.css'; 
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>

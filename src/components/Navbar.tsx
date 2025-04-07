@@ -1,14 +1,31 @@
 
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { SearchIcon, Menu, X, Calendar, Ticket, LogIn, LogOut, User, UserPlus, Plus } from "lucide-react";
+import { SearchIcon, Menu, X, Calendar, Ticket, LogIn, LogOut, User, UserPlus, Plus, ChevronDown } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -60,16 +77,41 @@ const Navbar = () => {
             
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-700">Hi, {user?.name?.split(' ')[0]}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
-                  onClick={logout}
-                >
-                  <LogOut className="h-4 w-4 mr-1" />
-                  Logout
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-eventPurple text-eventPurple hover:bg-eventPurple hover:text-white flex items-center"
+                    >
+                      <User className="h-4 w-4 mr-1" />
+                      {user?.name?.split(' ')[0]}
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/tickets')}>
+                      <Ticket className="h-4 w-4 mr-2" />
+                      My Tickets
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-red-500 focus:text-red-500"
+                      onClick={logout}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -126,6 +168,15 @@ const Navbar = () => {
                     <Plus className="h-4 w-4 inline mr-2" />
                     Host Event
                   </Link>
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      className="text-gray-700 hover:text-eventPurple transition-colors py-2"
+                    >
+                      <Calendar className="h-4 w-4 inline mr-2" />
+                      Admin Dashboard
+                    </Link>
+                  )}
                 </>
               ) : null}
               
