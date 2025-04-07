@@ -113,7 +113,7 @@ const EventsPage = () => {
     location: event.location,
     image: event.image_url,
     category: event.category,
-    price: event.price > 0 ? `$${event.price}` : "Free"
+    price: event.price > 0 ? `₹${event.price}` : "Free"
   });
   
   return (

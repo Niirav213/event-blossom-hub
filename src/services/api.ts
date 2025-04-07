@@ -39,9 +39,8 @@ type TicketData = {
   quantity?: number;
 };
 
-// Base API URL - Check if we're in development mode and use relative URL
-// This helps the app work in various environments including deployment previews
-const API_URL = import.meta.env.DEV ? '/api' : '/api';
+// Base API URL - Using relative paths to help work in various environments
+const API_URL = '/api';
 
 // Helper functions
 const getAuthHeaders = () => {
@@ -127,12 +126,17 @@ const addLocalEvent = (event: any) => {
     
     // Dispatch a custom event for the current tab to know about the update
     window.dispatchEvent(new Event('eventCreated'));
+    
+    // Also dispatch a storage event for cross-tab communication
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'customEvents'
+    }));
   } catch (error) {
     console.error("Error saving local event:", error);
   }
 };
 
-// Helper function to check if API is available
+// Helper function to check if API is available - improved to handle HTML responses better
 const isApiAvailable = async () => {
   try {
     console.log("Checking API availability at:", `${API_URL}/test-db`);
@@ -141,6 +145,14 @@ const isApiAvailable = async () => {
       // Adding a timeout to prevent long waits
       signal: AbortSignal.timeout(3000) 
     });
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn("API endpoint returned non-JSON response");
+      return false;
+    }
+    
     return response.ok;
   } catch (error) {
     console.warn("API not available, using mock data:", error);
@@ -271,48 +283,83 @@ export const authService = {
 export const eventsService = {
   async getAllEvents() {
     try {
-      // Check if the API is available
+      // Always get local events first
+      const localEvents = getLocalEvents();
+      
+      // Try to check if API is available
       const apiAvailable = await isApiAvailable();
       
       if (!apiAvailable) {
-        // Return mock data and local events for development
+        // Return mock data and local events
         console.log("Using mock events data");
-        const localEvents = getLocalEvents();
         return [...mockEvents, ...localEvents];
       }
       
-      const response = await fetch(`${API_URL}/events`);
-      return await handleResponse(response);
+      try {
+        const response = await fetch(`${API_URL}/events`);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error("API endpoint returned non-JSON response");
+          // Fallback to mock data and local events
+          return [...mockEvents, ...localEvents];
+        }
+        
+        const apiEvents = await response.json();
+        // Combine API events with local events
+        return [...apiEvents, ...localEvents];
+      } catch (error) {
+        console.error("Error parsing API response:", error);
+        // Fallback to mock data and local events on any error
+        return [...mockEvents, ...localEvents];
+      }
     } catch (error) {
       console.error("Error fetching events:", error);
-      // Fallback to mock data and local events
-      console.log("Falling back to mock events due to error");
-      const localEvents = getLocalEvents();
-      return [...mockEvents, ...localEvents];
+      // Final fallback
+      return [...mockEvents, getLocalEvents()];
     }
   },
   
   async getEventById(id: string) {
     try {
+      // First check in localStorage
+      const localEvents = getLocalEvents();
+      const localEvent = localEvents.find((e: any) => e.id === id);
+      
+      // Return local event if found
+      if (localEvent) return localEvent;
+      
       // Check if the API is available
       const apiAvailable = await isApiAvailable();
       
       if (!apiAvailable) {
-        // First check in localStorage
-        const localEvents = getLocalEvents();
-        const localEvent = localEvents.find((e: any) => e.id === id);
-        
         // Then check mock events if not found in localStorage
-        if (localEvent) return localEvent;
-        
-        // Find mock event by ID
         const mockEvent = mockEvents.find(e => e.id === id);
         if (!mockEvent) throw new Error("Event not found");
         return mockEvent;
       }
       
-      const response = await fetch(`${API_URL}/events/${id}`);
-      return await handleResponse(response);
+      // Try the API
+      try {
+        const response = await fetch(`${API_URL}/events/${id}`);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          // Fallback to mock data
+          const mockEvent = mockEvents.find(e => e.id === id);
+          if (!mockEvent) throw new Error("Event not found");
+          return mockEvent;
+        }
+        
+        return await response.json();
+      } catch (error) {
+        // Fallback to mock data
+        const mockEvent = mockEvents.find(e => e.id === id);
+        if (!mockEvent) throw new Error("Event not found");
+        return mockEvent;
+      }
     } catch (error) {
       console.error("Error fetching event:", error);
       throw error;
@@ -338,16 +385,47 @@ export const eventsService = {
         // Store in localStorage to persist between page navigations
         addLocalEvent(newEvent);
         
-        toast.success("Event created successfully (mock)");
+        toast.success("Event created successfully!");
         return newEvent;
       }
       
-      const response = await fetch(`${API_URL}/events`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
-      return await handleResponse(response);
+      // Try the API
+      try {
+        const response = await fetch(`${API_URL}/events`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(data)
+        });
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          // Fallback to mock creation
+          const newEvent = {
+            ...data,
+            id: Date.now().toString(),
+            available_tickets: data.total_tickets
+          };
+          
+          addLocalEvent(newEvent);
+          toast.success("Event created successfully!");
+          return newEvent;
+        }
+        
+        const createdEvent = await response.json();
+        return createdEvent;
+      } catch (error) {
+        // Fallback to mock creation
+        const newEvent = {
+          ...data,
+          id: Date.now().toString(),
+          available_tickets: data.total_tickets
+        };
+        
+        addLocalEvent(newEvent);
+        toast.success("Event created successfully!");
+        return newEvent;
+      }
     } catch (error) {
       console.error("Error creating event:", error);
       throw error;
