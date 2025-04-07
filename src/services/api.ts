@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 // Types
@@ -140,16 +139,22 @@ const addLocalEvent = (event: any) => {
 const isApiAvailable = async () => {
   try {
     console.log("Checking API availability at:", `${API_URL}/test-db`);
+    
+    // Use a timeout to prevent long waits
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
     const response = await fetch(`${API_URL}/test-db`, { 
       method: 'GET',
-      // Adding a timeout to prevent long waits
-      signal: AbortSignal.timeout(3000) 
+      signal: controller.signal
     });
     
-    // Check if response is JSON
+    clearTimeout(timeoutId);
+    
+    // Check if response is JSON by looking at content type
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
-      console.warn("API endpoint returned non-JSON response");
+      console.log("API endpoint returned non-JSON response - falling back to mock data");
       return false;
     }
     
@@ -302,6 +307,7 @@ export const eventsService = {
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
           console.error("API endpoint returned non-JSON response");
+          console.log("Falling back to mock events due to error");
           // Fallback to mock data and local events
           return [...mockEvents, ...localEvents];
         }
@@ -311,13 +317,15 @@ export const eventsService = {
         return [...apiEvents, ...localEvents];
       } catch (error) {
         console.error("Error parsing API response:", error);
+        console.log("Falling back to mock events due to error");
         // Fallback to mock data and local events on any error
         return [...mockEvents, ...localEvents];
       }
     } catch (error) {
       console.error("Error fetching events:", error);
+      console.log("Falling back to mock events due to error");
       // Final fallback
-      return [...mockEvents, getLocalEvents()];
+      return [...mockEvents, ...getLocalEvents()];
     }
   },
   

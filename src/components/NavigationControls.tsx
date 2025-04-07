@@ -13,6 +13,13 @@ const NavigationControls = () => {
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
+    // Initialize history with current path if empty
+    if (history.length === 0) {
+      setHistory([location.pathname]);
+      setCurrentIndex(0);
+      return;
+    }
+
     // Only update history when location changes normally (not from back/forward)
     if (!isNavigating) {
       // If we've gone back and then navigated to a new page, truncate the history
@@ -21,14 +28,22 @@ const NavigationControls = () => {
         setCurrentIndex(currentIndex + 1);
       } else {
         // Normal navigation, add to history
-        setHistory(prev => [...prev, location.pathname]);
-        setCurrentIndex(prev => prev + 1);
+        if (history[history.length - 1] !== location.pathname) {
+          setHistory(prev => [...prev, location.pathname]);
+          setCurrentIndex(prev => prev + 1);
+        }
       }
     } else {
       // Reset the navigating flag
       setIsNavigating(false);
     }
   }, [location.pathname]);
+
+  // Debug the navigation state
+  useEffect(() => {
+    console.log("Navigation History:", history);
+    console.log("Current Index:", currentIndex);
+  }, [history, currentIndex]);
 
   const handleBack = () => {
     if (currentIndex > 0) {
