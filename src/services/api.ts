@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 
 // Types
@@ -123,6 +124,9 @@ const addLocalEvent = (event: any) => {
     const existingEvents = getLocalEvents();
     existingEvents.push(event);
     localStorage.setItem('customEvents', JSON.stringify(existingEvents));
+    
+    // Dispatch a custom event for the current tab to know about the update
+    window.dispatchEvent(new Event('eventCreated'));
   } catch (error) {
     console.error("Error saving local event:", error);
   }

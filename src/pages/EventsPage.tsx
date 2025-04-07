@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -44,26 +45,43 @@ const EventsPage = () => {
     'social'
   ];
   
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setIsLoading(true);
-        const data = await eventsService.getAllEvents();
+  const fetchEvents = async () => {
+    try {
+      setIsLoading(true);
+      const data = await eventsService.getAllEvents();
+      
+      const filteredData = selectedCategory && selectedCategory !== 'All Categories' 
+        ? data.filter((event: Event) => event.category === selectedCategory)
+        : data;
         
-        const filteredData = selectedCategory && selectedCategory !== 'All Categories' 
-          ? data.filter((event: Event) => event.category === selectedCategory)
-          : data;
-          
-        setEvents(filteredData);
-      } catch (error) {
-        toast.error("Failed to load events");
-        console.error("Error fetching events:", error);
-      } finally {
-        setIsLoading(false);
+      setEvents(filteredData);
+    } catch (error) {
+      toast.error("Failed to load events");
+      console.error("Error fetching events:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchEvents();
+    
+    // Add event listener for event creation
+    window.addEventListener('eventCreated', fetchEvents);
+    
+    // Add event listener for localStorage changes (cross-tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'customEvents') {
+        fetchEvents();
       }
     };
     
-    fetchEvents();
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('eventCreated', fetchEvents);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [selectedCategory]);
   
   const handleSearch = () => {
@@ -162,16 +180,7 @@ const EventsPage = () => {
                     <select 
                       className="w-full rounded-md border border-gray-200 py-2 px-3"
                       value={selectedCategory}
-                      onChange={(e) => {
-                        const category = e.target.value;
-                        setSelectedCategory(category);
-                        
-                        if (category && category !== 'All Categories') {
-                          setSearchParams({ category });
-                        } else {
-                          setSearchParams({});
-                        }
-                      }}
+                      onChange={handleCategoryChange}
                     >
                       {categories.map((cat, idx) => (
                         <option key={idx} value={cat === 'All Categories' ? '' : cat}>{cat}</option>
@@ -198,10 +207,10 @@ const EventsPage = () => {
                       <option>Any price</option>
                       <option>Free</option>
                       <option>Paid</option>
-                      <option>Under $25</option>
-                      <option>$25 - $50</option>
-                      <option>$50 - $100</option>
-                      <option>$100+</option>
+                      <option>Under ₹25</option>
+                      <option>₹25 - ₹50</option>
+                      <option>₹50 - ₹100</option>
+                      <option>₹100+</option>
                     </select>
                   </div>
                   
@@ -245,7 +254,7 @@ const EventsPage = () => {
                     location={event.location}
                     image={event.image_url}
                     category={event.category}
-                    price={event.price > 0 ? `$${event.price}` : "Free"}
+                    price={event.price > 0 ? `₹${event.price}` : "Free"}
                   />
                 ))}
               </div>

@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, TicketIcon, Users, DollarSign, Tag } from "lucide-react";
+import { Calendar, Clock, TicketIcon, Users, Tag } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { eventsService, ticketsService } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
@@ -170,9 +170,8 @@ const EventDetailPage = () => {
                   
                   <div className="flex justify-between items-center mb-6">
                     <div className="font-medium">Price</div>
-                    <div className="text-2xl font-bold flex items-center">
-                      <DollarSign className="h-5 w-5 text-eventPurple" />
-                      {event.price ? event.price.toFixed(2) : "0.00"}
+                    <div className="text-2xl font-bold">
+                      ₹{event.price ? event.price.toFixed(2) : "0.00"}
                     </div>
                   </div>
                   

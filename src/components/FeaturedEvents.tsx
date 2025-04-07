@@ -26,22 +26,22 @@ const FeaturedEvents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const fetchedEvents = await eventsService.getAllEvents();
+      console.log("Fetched events:", fetchedEvents);
+      setEvents(fetchedEvents);
+    } catch (err: any) {
+      console.error("Error fetching events:", err);
+      setError(err.message || "Failed to load events");
+      toast.error("Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-        const fetchedEvents = await eventsService.getAllEvents();
-        console.log("Fetched events:", fetchedEvents);
-        setEvents(fetchedEvents);
-      } catch (err: any) {
-        console.error("Error fetching events:", err);
-        setError(err.message || "Failed to load events");
-        toast.error("Failed to load events");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchEvents();
     
     // Add event listener to refresh when localStorage changes (for cross-tab updates)
@@ -51,9 +51,12 @@ const FeaturedEvents = () => {
       }
     };
     
+    // Create a custom event listener for event creation within the same tab
+    window.addEventListener('eventCreated', fetchEvents);
     window.addEventListener('storage', handleStorageChange);
     
     return () => {
+      window.removeEventListener('eventCreated', fetchEvents);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -72,7 +75,7 @@ const FeaturedEvents = () => {
     location: event.location || 'Location TBA',
     image: event.image_url || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2340&q=80',
     category: event.category || 'General',
-    price: event.price ? `$${event.price}` : 'Free'
+    price: event.price ? `₹${event.price}` : 'Free'
   }));
   
   // Display the formatted events

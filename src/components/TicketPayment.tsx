@@ -142,12 +142,12 @@ const TicketPayment = ({
         </div>
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm text-gray-500">Price per ticket</span>
-          <span>${price.toFixed(2)}</span>
+          <span>₹{price.toFixed(2)}</span>
         </div>
         <div className="border-t border-gray-200 my-2 pt-2">
           <div className="flex justify-between items-center">
             <span className="font-medium">Total</span>
-            <span className="font-bold">${(price * quantity).toFixed(2)}</span>
+            <span className="font-bold">₹{(price * quantity).toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -228,7 +228,7 @@ const TicketPayment = ({
                   Processing...
                 </>
               ) : (
-                `Pay $${(price * quantity).toFixed(2)}`
+                `Pay ₹${(price * quantity).toFixed(2)}`
               )}
             </Button>
           </div>
