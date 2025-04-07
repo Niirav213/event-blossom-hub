@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import EventsPage from "./pages/EventsPage";
 import EventDetailPage from "./pages/EventDetailPage";
@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminEventForm from "./pages/AdminEventForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateEventPage from "./pages/CreateEventPage";
+import NavigationControls from "./components/NavigationControls";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <NavigationControls />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/events" element={<EventsPage />} />
