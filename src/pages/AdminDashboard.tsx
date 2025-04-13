@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -8,7 +9,7 @@ import { eventsService } from "@/services/api";
 import { toast } from "sonner";
 
 interface Event {
-  id: number;
+  id: number | string;
   title: string;
   date: string;
   location: string;
@@ -22,23 +23,61 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const data = await eventsService.getAllEvents();
-        setEvents(data);
-      } catch (error) {
-        toast.error("Failed to load events");
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Improved event fetching function with better error handling
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching events for admin dashboard...");
+      const data = await eventsService.getAllEvents();
+      console.log("Events retrieved:", data);
+      
+      // Format the data to match the Event interface
+      const formattedEvents = data.map((event: any) => ({
+        id: event.id || event.ID,
+        title: event.title || event.TITLE,
+        date: event.date || event.EVENT_DATE,
+        location: event.location || event.LOCATION,
+        category: event.category || event.CATEGORY,
+        total_tickets: event.total_tickets || event.TOTAL_TICKETS || 0,
+        available_tickets: event.available_tickets || event.AVAILABLE_TICKETS || 0
+      }));
+      
+      setEvents(formattedEvents);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      toast.error("Failed to load events");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Listen for both regular navigation events and local storage changes
+  useEffect(() => {
     fetchEvents();
+    
+    // Listen for event creation/deletion to refresh the list
+    const handleEventChange = () => {
+      console.log("Event created/updated event detected, refreshing events...");
+      fetchEvents();
+    };
+    
+    // Add event listeners
+    window.addEventListener('eventCreated', handleEventChange);
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'customEvents') {
+        console.log("Storage event detected for customEvents, refreshing events...");
+        handleEventChange();
+      }
+    });
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('eventCreated', handleEventChange);
+      window.removeEventListener('storage', handleEventChange);
+    };
   }, []);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number | string) => {
     if (!window.confirm("Are you sure you want to delete this event?")) {
       return;
     }
@@ -47,9 +86,26 @@ const AdminDashboard = () => {
       await eventsService.deleteEvent(id.toString());
       setEvents(events.filter(event => event.id !== id));
       toast.success("Event deleted successfully");
+      
+      // Manually dispatch an event to notify about the change
+      window.dispatchEvent(new Event('eventCreated'));
     } catch (error) {
       toast.error("Failed to delete event");
       console.error(error);
+    }
+  };
+
+  // Helper to format date strings consistently
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateString; // Return original if parsing fails
     }
   };
 
@@ -143,7 +199,7 @@ const AdminDashboard = () => {
                           {event.title}
                         </Link>
                       </td>
-                      <td className="py-3 px-4">{event.date}</td>
+                      <td className="py-3 px-4">{formatDate(event.date)}</td>
                       <td className="py-3 px-4">{event.location}</td>
                       <td className="py-3 px-4">
                         <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-gray-100">
