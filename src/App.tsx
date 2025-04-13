@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,7 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminEventForm from "./pages/AdminEventForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateEventPage from "./pages/CreateEventPage";
-import NavigationControls from "./components/NavigationControls";
+// Removed NavigationControls import
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,9 +28,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Remove the old App.css import which had some background styling
-// import './App.css'; 
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -39,7 +35,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <NavigationControls />
+          {/* Removed NavigationControls component */}
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/events" element={<EventsPage />} />
