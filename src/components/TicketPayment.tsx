@@ -5,6 +5,7 @@ import { Input } from "./ui/input";
 import { Loader2, CreditCard, Check } from "lucide-react";
 import { ticketsService } from "@/services/api";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface TicketPaymentProps {
   eventId: string;
@@ -28,6 +29,7 @@ const TicketPayment = ({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const navigate = useNavigate();
 
   const formatCardNumber = (value: string) => {
     // Remove all non-digits
@@ -63,9 +65,6 @@ const TicketPayment = ({
     try {
       setLoading(true);
       
-      // In a real app, you would process the payment with a payment provider
-      // For this demo, we'll just simulate a successful payment
-      
       // Purchase ticket
       await ticketsService.purchaseTicket({
         event_id: eventId,
@@ -76,9 +75,11 @@ const TicketPayment = ({
       setSuccess(true);
       toast.success("Ticket purchased successfully!");
       
-      // Notify parent component
+      // Notify parent component after a short delay
       setTimeout(() => {
         onPaymentComplete();
+        // You can optionally redirect to tickets page
+        // navigate('/tickets');
       }, 1500);
       
     } catch (error: any) {
@@ -86,6 +87,11 @@ const TicketPayment = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const viewMyTickets = () => {
+    onPaymentComplete();
+    navigate('/tickets');
   };
 
   if (success) {
@@ -98,7 +104,7 @@ const TicketPayment = ({
           <h3 className="text-lg font-semibold text-green-800 mb-2">Payment Successful</h3>
           <p className="text-green-700">Your ticket purchase has been confirmed</p>
         </div>
-        <Button onClick={onPaymentComplete} className="w-full">
+        <Button onClick={viewMyTickets} className="w-full">
           View My Tickets
         </Button>
       </div>

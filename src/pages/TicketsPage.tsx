@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -27,16 +27,19 @@ const TicketsPage = () => {
   const [tickets, setTickets] = useState<UserTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchTickets = async () => {
       try {
         setIsLoading(true);
-        const data = await ticketsService.getMyTickets();
+        // Call getUserTickets instead of getMyTickets to fix potential naming issues
+        const data = await ticketsService.getUserTickets();
+        console.log("Fetched tickets:", data);
         setTickets(data);
       } catch (error) {
+        console.error("Error fetching tickets:", error);
         toast.error("Failed to load your tickets");
-        console.error(error);
       } finally {
         setIsLoading(false);
       }
@@ -44,7 +47,29 @@ const TicketsPage = () => {
     
     if (isAuthenticated) {
       fetchTickets();
+    } else {
+      // Redirect to login if not authenticated
+      navigate("/login");
     }
+  }, [isAuthenticated, navigate]);
+  
+  // Add a listener for when new tickets are purchased
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (isAuthenticated) {
+        ticketsService.getUserTickets().then(data => {
+          console.log("Tickets updated from storage event:", data);
+          setTickets(data);
+        });
+      }
+    };
+    
+    // Listen for storage events (for cross-tab updates)
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [isAuthenticated]);
   
   const formatDate = (dateStr: string) => {
@@ -94,7 +119,7 @@ const TicketsPage = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => window.location.href = '/events'}
+                  onClick={() => navigate('/events')}
                   className="border-eventPurple text-eventPurple hover:bg-eventPurple hover:text-white"
                 >
                   Browse More Events
@@ -191,7 +216,7 @@ const TicketsPage = () => {
               <p className="text-gray-500 mb-6">You haven't purchased any tickets yet</p>
               <Button 
                 className="bg-eventPurple hover:bg-eventPurple-dark"
-                onClick={() => window.location.href = '/events'}
+                onClick={() => navigate('/events')}
               >
                 Browse Events
               </Button>

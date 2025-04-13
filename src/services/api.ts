@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 
 // Types
@@ -132,6 +133,34 @@ const addLocalEvent = (event: any) => {
     }));
   } catch (error) {
     console.error("Error saving local event:", error);
+  }
+};
+
+// New helper function to get locally stored tickets
+const getLocalTickets = () => {
+  try {
+    const storedTickets = localStorage.getItem('userTickets');
+    return storedTickets ? JSON.parse(storedTickets) : [];
+  } catch (error) {
+    console.error("Error retrieving local tickets:", error);
+    return [];
+  }
+};
+
+// New helper function to add a ticket to localStorage
+const addLocalTicket = (ticket: any) => {
+  try {
+    const existingTickets = getLocalTickets();
+    existingTickets.push(ticket);
+    localStorage.setItem('userTickets', JSON.stringify(existingTickets));
+    
+    // Dispatch events for cross-tab communication
+    window.dispatchEvent(new Event('ticketPurchased'));
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'userTickets'
+    }));
+  } catch (error) {
+    console.error("Error saving local ticket:", error);
   }
 };
 
@@ -498,13 +527,34 @@ export const ticketsService = {
       if (!apiAvailable) {
         // Mock ticket purchase
         console.log("Mock ticket purchase:", data);
-        toast.success("Ticket purchased successfully (mock)");
-        return {
+        
+        // Get the event details to include in the ticket
+        const event = mockEvents.find(e => e.id === data.event_id);
+        if (!event) {
+          throw new Error("Event not found");
+        }
+        
+        // Create a mock ticket
+        const mockTicket = {
           id: Date.now(),
           event_id: data.event_id,
+          user_id: authService.getCurrentUser()?.id || 1,
           ticket_code: `MOCK-TICKET-${Date.now()}`,
-          purchase_date: new Date().toISOString()
+          status: "purchased",
+          purchase_date: new Date().toISOString(),
+          quantity: data.quantity || 1,
+          event_title: event.title,
+          date: event.date,
+          time_start: event.time_start,
+          location: event.location,
+          image_url: event.image_url
         };
+        
+        // Store in localStorage for persistence
+        addLocalTicket(mockTicket);
+        
+        toast.success("Ticket purchased successfully!");
+        return mockTicket;
       }
       
       const response = await fetch(`${API_URL}/tickets`, {
@@ -512,44 +562,129 @@ export const ticketsService = {
         headers: getAuthHeaders(),
         body: JSON.stringify(data)
       });
-      return await handleResponse(response);
+      
+      const result = await handleResponse(response);
+      
+      // If successful API response, still save to localStorage for resilience
+      if (result.success) {
+        // Get the event details to include in the ticket
+        const event = await this.getEventById(data.event_id);
+        
+        const ticket = {
+          id: Date.now(),
+          event_id: data.event_id,
+          user_id: authService.getCurrentUser()?.id || 1,
+          ticket_code: result.ticket_code,
+          status: "purchased",
+          purchase_date: new Date().toISOString(),
+          quantity: data.quantity || 1,
+          event_title: event.title,
+          date: event.date,
+          time_start: event.time_start,
+          location: event.location,
+          image_url: event.image_url
+        };
+        
+        addLocalTicket(ticket);
+      }
+      
+      return result;
     } catch (error) {
       console.error("Error purchasing ticket:", error);
       throw error;
     }
   },
   
+  // Helper method to get event by ID for ticket creation
+  async getEventById(id: string) {
+    // Look in mock events
+    const mockEvent = mockEvents.find(e => e.id === id);
+    if (mockEvent) return mockEvent;
+    
+    // Look in local events
+    const localEvents = getLocalEvents();
+    const localEvent = localEvents.find((e: any) => e.id === id);
+    if (localEvent) return localEvent;
+    
+    // Try API
+    try {
+      const apiAvailable = await isApiAvailable();
+      if (apiAvailable) {
+        const response = await fetch(`${API_URL}/events/${id}`, {
+          headers: getAuthHeaders()
+        });
+        return await handleResponse(response);
+      }
+    } catch (error) {
+      console.error("Error fetching event for ticket:", error);
+    }
+    
+    throw new Error("Event not found");
+  },
+  
   async getMyTickets() {
     try {
+      // First check localStorage for tickets
+      const localTickets = getLocalTickets();
+      
       // Check if the API is available
       const apiAvailable = await isApiAvailable();
       
       if (!apiAvailable) {
-        // Mock tickets data
+        console.log("Using local tickets:", localTickets);
+        if (localTickets.length > 0) {
+          return localTickets;
+        }
+        
+        // If no local tickets, generate some mock ones from mock events
         return mockEvents.map(event => ({
-          id: `ticket-${event.id}`,
+          id: Date.now() + parseInt(event.id),
           event_id: event.id,
+          user_id: authService.getCurrentUser()?.id || 1,
+          ticket_code: `MOCK-${Date.now()}-${event.id}`,
+          status: "purchased",
+          purchase_date: new Date().toISOString(),
           event_title: event.title,
           date: event.date,
           time_start: event.time_start,
           location: event.location,
-          image_url: event.image_url,
-          ticket_code: `MOCK-${Date.now()}-${event.id}`,
-          purchase_date: new Date().toISOString()
+          image_url: event.image_url
         }));
       }
       
-      const response = await fetch(`${API_URL}/tickets/my`, {
-        headers: getAuthHeaders()
-      });
-      return await handleResponse(response);
+      // Try API
+      try {
+        const response = await fetch(`${API_URL}/tickets/my`, {
+          headers: getAuthHeaders()
+        });
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.log("API endpoint returned non-JSON response for tickets");
+          // Return local tickets if API fails
+          return localTickets;
+        }
+        
+        const apiTickets = await response.json();
+        
+        // Merge API tickets with local ones, avoiding duplicates by ticket_code
+        const ticketCodes = new Set(apiTickets.map((t: any) => t.ticket_code));
+        const uniqueLocalTickets = localTickets.filter((t: any) => !ticketCodes.has(t.ticket_code));
+        
+        return [...apiTickets, ...uniqueLocalTickets];
+      } catch (error) {
+        console.error("Error fetching tickets from API:", error);
+        // Return local tickets if API fails
+        return localTickets;
+      }
     } catch (error) {
-      console.error("Error fetching tickets:", error);
-      throw error;
+      console.error("Error in getMyTickets:", error);
+      return [];
     }
   },
 
-  // Alias for getMyTickets to fix the error
+  // Alias for getMyTickets - both methods now work
   async getUserTickets() {
     return this.getMyTickets();
   }
