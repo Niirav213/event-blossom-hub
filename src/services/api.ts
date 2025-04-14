@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 // Types
@@ -106,6 +105,16 @@ const mockEvents = [
   }
 ];
 
+// Generate a unique device ID to identify this device for syncing
+const getDeviceId = () => {
+  let deviceId = localStorage.getItem('deviceId');
+  if (!deviceId) {
+    deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('deviceId', deviceId);
+  }
+  return deviceId;
+};
+
 // Helper function to get locally stored custom events
 const getLocalEvents = () => {
   try {
@@ -121,8 +130,18 @@ const getLocalEvents = () => {
 const addLocalEvent = (event: any) => {
   try {
     const existingEvents = getLocalEvents();
-    existingEvents.push(event);
-    localStorage.setItem('customEvents', JSON.stringify(existingEvents));
+    
+    // Check if this event already exists (by id)
+    const eventExists = existingEvents.some((e: any) => e.id === event.id);
+    if (eventExists) {
+      // Update the existing event
+      const updatedEvents = existingEvents.map((e: any) => e.id === event.id ? event : e);
+      localStorage.setItem('customEvents', JSON.stringify(updatedEvents));
+    } else {
+      // Add the new event
+      existingEvents.push(event);
+      localStorage.setItem('customEvents', JSON.stringify(existingEvents));
+    }
     
     // Dispatch a custom event for the current tab to know about the update
     window.dispatchEvent(new Event('eventCreated'));
@@ -131,8 +150,93 @@ const addLocalEvent = (event: any) => {
     window.dispatchEvent(new StorageEvent('storage', {
       key: 'customEvents'
     }));
+    
+    // Save event to sessionStorage for cross-device synchronization
+    saveEventToSessionStorage(event);
   } catch (error) {
     console.error("Error saving local event:", error);
+  }
+};
+
+// Function to save event to sessionStorage for cross-device sync
+const saveEventToSessionStorage = (event: any) => {
+  try {
+    // Get existing sync events
+    const syncEventsStr = sessionStorage.getItem('syncEvents') || '[]';
+    const syncEvents = JSON.parse(syncEventsStr);
+    
+    // Add this event to sync list with device ID and timestamp
+    const syncEvent = {
+      ...event,
+      deviceId: getDeviceId(),
+      syncTimestamp: Date.now()
+    };
+    
+    // Check if this event already exists in sync list
+    const eventIndex = syncEvents.findIndex((e: any) => e.id === event.id);
+    if (eventIndex >= 0) {
+      // Update existing event
+      syncEvents[eventIndex] = syncEvent;
+    } else {
+      // Add new event
+      syncEvents.push(syncEvent);
+    }
+    
+    // Save updated sync list
+    sessionStorage.setItem('syncEvents', JSON.stringify(syncEvents));
+    
+    // Also save to localStorage for persistence across page reloads
+    localStorage.setItem('syncEvents', JSON.stringify(syncEvents));
+  } catch (error) {
+    console.error("Error saving event to session storage:", error);
+  }
+};
+
+// Function to load events from sessionStorage (cross-device sync)
+const loadEventsFromSessionStorage = () => {
+  try {
+    // Check localStorage first (more persistent)
+    const syncEventsStr = localStorage.getItem('syncEvents') || sessionStorage.getItem('syncEvents') || '[]';
+    const syncEvents = JSON.parse(syncEventsStr);
+    
+    // Get existing local events
+    const localEvents = getLocalEvents();
+    
+    // Merge sync events with local events, avoiding duplicates
+    let updated = false;
+    
+    syncEvents.forEach((syncEvent: any) => {
+      // Skip events from this device (already in localStorage)
+      if (syncEvent.deviceId === getDeviceId()) return;
+      
+      // Check if this event already exists locally
+      const existingIndex = localEvents.findIndex((e: any) => e.id === syncEvent.id);
+      
+      if (existingIndex >= 0) {
+        // Only update if sync event is newer
+        const existingEvent = localEvents[existingIndex];
+        if (!existingEvent.syncTimestamp || 
+            (syncEvent.syncTimestamp > existingEvent.syncTimestamp)) {
+          localEvents[existingIndex] = syncEvent;
+          updated = true;
+        }
+      } else {
+        // Add new event from another device
+        localEvents.push(syncEvent);
+        updated = true;
+      }
+    });
+    
+    // Update localStorage if changes were made
+    if (updated) {
+      localStorage.setItem('customEvents', JSON.stringify(localEvents));
+      toast.info("New events synchronized from other devices");
+    }
+    
+    return localEvents;
+  } catch (error) {
+    console.error("Error loading events from session storage:", error);
+    return getLocalEvents();
   }
 };
 
@@ -317,7 +421,10 @@ export const authService = {
 export const eventsService = {
   async getAllEvents() {
     try {
-      // Always get local events first
+      // First, try to sync events from other devices via sessionStorage
+      const syncedEvents = loadEventsFromSessionStorage();
+      
+      // Then get local events (should include synced events now)
       const localEvents = getLocalEvents();
       
       // Try to check if API is available
@@ -326,7 +433,15 @@ export const eventsService = {
       if (!apiAvailable) {
         // Return mock data and local events
         console.log("Using mock events data");
-        return [...mockEvents, ...localEvents];
+        const combinedEvents = [...mockEvents, ...localEvents];
+        
+        // Deduplicate events by id
+        const eventMap = new Map();
+        combinedEvents.forEach(event => {
+          eventMap.set(event.id, event);
+        });
+        
+        return Array.from(eventMap.values());
       }
       
       try {
@@ -343,7 +458,15 @@ export const eventsService = {
         
         const apiEvents = await response.json();
         // Combine API events with local events
-        return [...apiEvents, ...localEvents];
+        const combinedEvents = [...apiEvents, ...localEvents];
+        
+        // Deduplicate events by id
+        const eventMap = new Map();
+        combinedEvents.forEach(event => {
+          eventMap.set(event.id, event);
+        });
+        
+        return Array.from(eventMap.values());
       } catch (error) {
         console.error("Error parsing API response:", error);
         console.log("Falling back to mock events due to error");
@@ -416,7 +539,9 @@ export const eventsService = {
         const newEvent = {
           ...data,
           id: Date.now().toString(),
-          available_tickets: data.total_tickets
+          available_tickets: data.total_tickets,
+          deviceId: getDeviceId(),
+          syncTimestamp: Date.now()
         };
         
         // Store in localStorage to persist between page navigations
@@ -441,7 +566,9 @@ export const eventsService = {
           const newEvent = {
             ...data,
             id: Date.now().toString(),
-            available_tickets: data.total_tickets
+            available_tickets: data.total_tickets,
+            deviceId: getDeviceId(),
+            syncTimestamp: Date.now()
           };
           
           addLocalEvent(newEvent);
@@ -456,7 +583,9 @@ export const eventsService = {
         const newEvent = {
           ...data,
           id: Date.now().toString(),
-          available_tickets: data.total_tickets
+          available_tickets: data.total_tickets,
+          deviceId: getDeviceId(),
+          syncTimestamp: Date.now()
         };
         
         addLocalEvent(newEvent);
@@ -475,7 +604,39 @@ export const eventsService = {
       const apiAvailable = await isApiAvailable();
       
       if (!apiAvailable) {
-        // Mock event update
+        // Check if this is a local event first
+        const localEvents = getLocalEvents();
+        const localEvent = localEvents.find((e: any) => e.id === id);
+        
+        if (localEvent) {
+          // Update local event
+          const updatedEvent = {
+            ...localEvent,
+            ...data,
+            deviceId: getDeviceId(),
+            syncTimestamp: Date.now()
+          };
+          
+          // Update in localStorage
+          const updatedEvents = localEvents.map((e: any) => 
+            e.id === id ? updatedEvent : e
+          );
+          localStorage.setItem('customEvents', JSON.stringify(updatedEvents));
+          
+          // Update in sessionStorage for cross-device sync
+          saveEventToSessionStorage(updatedEvent);
+          
+          // Notify about the update
+          window.dispatchEvent(new Event('eventCreated'));
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'customEvents'
+          }));
+          
+          toast.success("Event updated successfully");
+          return updatedEvent;
+        }
+        
+        // Mock event update for non-local events
         console.log("Mock event update:", id, data);
         toast.success("Event updated successfully (mock)");
         return { ...data, id };
@@ -498,8 +659,38 @@ export const eventsService = {
       // Check if the API is available
       const apiAvailable = await isApiAvailable();
       
+      // First check if this is a local event
+      const localEvents = getLocalEvents();
+      const localEventIndex = localEvents.findIndex((e: any) => e.id === id);
+      
+      if (localEventIndex >= 0) {
+        // It's a local event, remove it
+        localEvents.splice(localEventIndex, 1);
+        localStorage.setItem('customEvents', JSON.stringify(localEvents));
+        
+        // Also remove from sync events
+        try {
+          const syncEventsStr = localStorage.getItem('syncEvents') || '[]';
+          const syncEvents = JSON.parse(syncEventsStr);
+          const filteredSyncEvents = syncEvents.filter((e: any) => e.id !== id);
+          localStorage.setItem('syncEvents', JSON.stringify(filteredSyncEvents));
+          sessionStorage.setItem('syncEvents', JSON.stringify(filteredSyncEvents));
+        } catch (error) {
+          console.error("Error updating sync events after deletion:", error);
+        }
+        
+        // Notify about the deletion
+        window.dispatchEvent(new Event('eventCreated'));
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'customEvents'
+        }));
+        
+        toast.success("Event deleted successfully");
+        return { success: true };
+      }
+      
       if (!apiAvailable) {
-        // Mock event deletion
+        // Mock event deletion for non-local events
         console.log("Mock event deletion:", id);
         toast.success("Event deleted successfully (mock)");
         return { success: true };

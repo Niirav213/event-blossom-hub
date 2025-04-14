@@ -55,6 +55,11 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchEvents();
     
+    // Set up polling for new events (cross-device sync)
+    const syncInterval = setInterval(() => {
+      fetchEvents();
+    }, 30000); // Check every 30 seconds
+    
     // Listen for event creation/deletion to refresh the list
     const handleEventChange = () => {
       console.log("Event created/updated event detected, refreshing events...");
@@ -64,7 +69,7 @@ const AdminDashboard = () => {
     // Add event listeners
     window.addEventListener('eventCreated', handleEventChange);
     window.addEventListener('storage', (event) => {
-      if (event.key === 'customEvents') {
+      if (event.key === 'customEvents' || event.key === 'syncEvents') {
         console.log("Storage event detected for customEvents, refreshing events...");
         handleEventChange();
       }
@@ -72,6 +77,7 @@ const AdminDashboard = () => {
     
     // Clean up
     return () => {
+      clearInterval(syncInterval);
       window.removeEventListener('eventCreated', handleEventChange);
       window.removeEventListener('storage', handleEventChange);
     };

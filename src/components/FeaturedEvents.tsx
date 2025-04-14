@@ -44,9 +44,14 @@ const FeaturedEvents = () => {
   useEffect(() => {
     fetchEvents();
     
+    // Set up polling for new events (cross-device sync)
+    const syncInterval = setInterval(() => {
+      fetchEvents();
+    }, 30000); // Check every 30 seconds
+    
     // Add event listener to refresh when localStorage changes (for cross-tab updates)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'customEvents') {
+      if (e.key === 'customEvents' || e.key === 'syncEvents') {
         fetchEvents();
       }
     };
@@ -56,6 +61,7 @@ const FeaturedEvents = () => {
     window.addEventListener('storage', handleStorageChange);
     
     return () => {
+      clearInterval(syncInterval);
       window.removeEventListener('eventCreated', fetchEvents);
       window.removeEventListener('storage', handleStorageChange);
     };
